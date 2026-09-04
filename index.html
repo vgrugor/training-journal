@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f0e8" />
+    <title>День</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell" data-active-tab="summary">
+      <header class="topbar day-context">
+        <div>
+          <p class="eyebrow">Особистий журнал</p>
+          <h1>День</h1>
+        </div>
+        <button class="icon-button" id="installButton" type="button" hidden title="Встановити">
+          <span aria-hidden="true">↓</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="day-nav day-context" aria-label="Навігація днями">
+          <button class="nav-button" id="prevDay" type="button" title="Попередній день">‹</button>
+          <label class="date-picker">
+            <span>Дата</span>
+            <input id="selectedDate" type="date" />
+          </label>
+          <button class="nav-button" id="nextDay" type="button" title="Наступний день">›</button>
+        </section>
+
+        <section class="day-fields day-context" aria-label="Стан дня">
+          <label>
+            <span>Самопочуття</span>
+            <input id="wellbeing" type="number" min="1" max="10" inputmode="numeric" placeholder="1-10" />
+          </label>
+          <label>
+            <span>Нотатка</span>
+            <textarea id="dayNote" rows="2" placeholder="Коротко про день"></textarea>
+          </label>
+        </section>
+
+        <nav class="tabs" aria-label="Журнали">
+          <button class="tab is-active" type="button" data-tab="summary">Зведення</button>
+          <button class="tab" type="button" data-tab="strength">Силові</button>
+          <button class="tab" type="button" data-tab="cycling">Вело</button>
+          <button class="tab" type="button" data-tab="supplements">Добавки</button>
+          <button class="tab" type="button" data-tab="strengthHistory">Історія</button>
+          <button class="tab" type="button" data-tab="settings">Довідники</button>
+        </nav>
+
+        <section class="panel is-active" id="summaryPanel" data-panel="summary"></section>
+
+        <section class="panel" id="strengthPanel" data-panel="strength">
+          <div id="strengthSuggestion" class="suggestion-box"></div>
+          <div class="panel-title">
+            <h2>Силове тренування</h2>
+            <label class="panel-date">
+              <span>Дата</span>
+              <input class="sectionDate" type="date" />
+            </label>
+          </div>
+          <form id="strengthForm" class="stacked-form">
+            <label>
+              <span>Вправа</span>
+              <select id="strengthExercise"></select>
+            </label>
+            <div id="strengthExerciseFields" class="stacked-form">
+              <div class="form-grid">
+                <label>
+                  <span>Підходи</span>
+                  <select id="strengthTargetSets"></select>
+                </label>
+                <label>
+                  <span>Ціль повторів</span>
+                  <select id="strengthTargetReps"></select>
+                </label>
+                <label>
+                  <span>Відпочинок, хв</span>
+                  <select id="strengthRest"></select>
+                </label>
+                <label id="strengthBandField" hidden>
+                  <span>Гумка</span>
+                  <select id="strengthBand"></select>
+                </label>
+                <label id="strengthAddedWeightField" hidden>
+                  <span>Додаткова вага, кг</span>
+                  <input id="strengthAddedWeight" type="number" step="0.5" />
+                </label>
+                <label id="strengthTechniqueField" hidden>
+                  <span>Техніка</span>
+                  <input id="strengthTechnique" type="text" />
+                </label>
+              </div>
+              <div id="setsEditor" class="sets-editor"></div>
+              <label id="strengthNeedsConsolidationField" hidden>
+                <span>Потребує закріплення</span>
+                <select id="strengthNeedsConsolidation">
+                  <option value="false" selected>Ні</option>
+                  <option value="true">Так</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              <span>Нотатка</span>
+              <textarea id="strengthNote" rows="2"></textarea>
+            </label>
+            <div class="actions">
+              <button id="strengthSave" type="submit">Зберегти</button>
+              <button class="secondary" id="clearStrength" type="button">Очистити</button>
+            </div>
+          </form>
+          <div id="strengthList" class="entry-list"></div>
+        </section>
+
+        <section class="panel" id="cyclingPanel" data-panel="cycling">
+          <div class="panel-title">
+            <h2>Велотренування</h2>
+            <label class="panel-date">
+              <span>Дата</span>
+              <input class="sectionDate" type="date" />
+            </label>
+          </div>
+          <form id="cyclingForm" class="stacked-form">
+            <div class="form-grid">
+              <label>
+                <span>Тривалість, хв</span>
+                <select id="cyclingDuration"></select>
+              </label>
+              <label>
+                <span>Дистанція, км</span>
+                <input id="cyclingDistance" type="number" min="0" step="0.1" />
+              </label>
+              <label>
+                <span>Середня, км/год</span>
+                <input id="cyclingSpeed" type="number" min="0" step="0.1" />
+              </label>
+              <label>
+                <span>Навантаження</span>
+                <select id="cyclingLoad"></select>
+              </label>
+            </div>
+            <label>
+              <span>Нотатка</span>
+              <textarea id="cyclingNote" rows="2"></textarea>
+            </label>
+            <div class="actions">
+              <button type="submit">Зберегти</button>
+              <button class="secondary" id="clearCycling" type="button">Очистити</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" id="supplementsPanel" data-panel="supplements">
+          <div class="panel-title">
+            <h2>Добавки</h2>
+            <label class="panel-date">
+              <span>Дата</span>
+              <input class="sectionDate" type="date" />
+            </label>
+          </div>
+          <form id="intakeForm" class="stacked-form">
+            <div class="form-grid">
+              <label>
+                <span>Добавка</span>
+                <select id="intakeSupplement"></select>
+              </label>
+              <label>
+                <span>Час</span>
+                <input id="intakeTime" type="time" />
+              </label>
+              <label>
+                <span>Доза</span>
+                <input id="intakeDose" type="text" />
+              </label>
+            </div>
+            <label>
+              <span>Нотатка</span>
+              <textarea id="intakeNote" rows="2"></textarea>
+            </label>
+            <div class="actions">
+              <button id="intakeSave" type="submit">Зберегти</button>
+              <button class="secondary" id="clearIntake" type="button">Очистити</button>
+            </div>
+          </form>
+          <div id="intakeList" class="entry-list"></div>
+        </section>
+
+        <section class="panel" id="strengthHistoryPanel" data-panel="strengthHistory">
+          <div class="panel-title">
+            <h2>Історія силових</h2>
+            <label class="panel-date">
+              <span>Вправа</span>
+              <select id="strengthHistoryFilter"></select>
+            </label>
+          </div>
+          <div id="strengthHistoryTable" class="table-wrap"></div>
+        </section>
+
+        <section class="panel" id="settingsPanel" data-panel="settings">
+          <div class="panel-title">
+            <h2>Довідники</h2>
+          </div>
+          <div class="settings-grid">
+            <form id="exerciseForm" class="compact-form">
+              <h3>Вправи</h3>
+              <input id="exerciseName" type="text" placeholder="Назва вправи" />
+              <div class="form-grid two">
+                <input id="exerciseLower" type="number" min="1" value="5" aria-label="Нижня межа" />
+                <input id="exerciseUpper" type="number" min="1" value="10" aria-label="Верхня межа" />
+              </div>
+              <button type="submit">Додати вправу</button>
+              <div id="exerciseList" class="chip-list"></div>
+            </form>
+
+            <form id="bandForm" class="compact-form">
+              <h3>Гумки</h3>
+              <input id="bandName" type="text" placeholder="Назва" />
+              <input id="bandLevel" type="number" min="0" value="1" aria-label="Рівень допомоги" />
+              <button type="submit">Додати резинку</button>
+              <div id="bandList" class="chip-list"></div>
+            </form>
+
+            <form id="supplementForm" class="compact-form">
+              <h3>Добавки</h3>
+              <input id="supplementName" type="text" placeholder="Назва" />
+              <input id="supplementDose" type="text" placeholder="Типова доза" />
+              <button type="submit">Додати добавку</button>
+              <div id="supplementList" class="chip-list"></div>
+            </form>
+          </div>
+          <div class="data-actions">
+            <button id="exportData" type="button">Експорт JSON</button>
+            <label class="file-button">
+              Імпорт JSON
+              <input id="importData" type="file" accept="application/json" />
+            </label>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
