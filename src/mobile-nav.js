@@ -4,7 +4,8 @@
     const moreToggle = document.querySelector(".more-toggle");
     if (!moreNav || !moreToggle) return;
 
-    moreToggle.addEventListener("click", () => {
+    moreToggle.addEventListener("click", (event) => {
+      event.stopPropagation();
       const isOpen = moreNav.classList.toggle("is-open");
       moreToggle.setAttribute("aria-expanded", String(isOpen));
     });
