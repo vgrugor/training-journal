@@ -239,6 +239,22 @@
               <input id="importData" type="file" accept="application/json" />
             </label>
           </div>
+          <form id="sheetsBackupForm" class="backup-form">
+            <h3>Google Sheets backup</h3>
+            <label>
+              <span>Apps Script URL</span>
+              <input id="sheetsScriptUrl" type="url" placeholder="https://script.google.com/macros/s/..." />
+            </label>
+            <label>
+              <span>Ключ</span>
+              <input id="sheetsBackupKey" type="password" autocomplete="off" placeholder="Особистий ключ із Apps Script" />
+            </label>
+            <div class="actions">
+              <button id="backupToSheets" type="button">Зберегти в Google Sheets</button>
+              <button class="secondary" id="restoreFromSheets" type="button">Відновити з Google Sheets</button>
+            </div>
+            <p id="sheetsBackupStatus" class="status-line" aria-live="polite"></p>
+          </form>
         </section>
       </main>
     </div>
