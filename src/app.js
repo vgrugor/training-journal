@@ -231,18 +231,16 @@ function renderStrengthSuggestion() {
 
   const forecast = getStrengthForecast(suggestion.exercise.id);
   const previousHtml = getPreviousStrengthHtml(suggestion.exercise.id) || "<p>Попереднього результату для цієї вправи ще немає.</p>";
-  const targetSets = suggestion.exercise.defaultSets || 5;
   const targetReps = forecast?.targetReps || suggestion.exercise.lowerRepTarget || "";
   const suggestedRows = [
     suggestion.exercise.name,
-    targetReps ? `Підходи: ${targetSets}×${targetReps}` : "",
     targetReps ? `Зробити: ${targetReps} у підході` : "",
     forecast?.bandId ? `Гумка: ${findName(state.bands, forecast.bandId, "")}` : ""
   ].filter(Boolean).map((row) => `<li>${escapeHtml(row)}</li>`).join("");
 
   $("#strengthSuggestion").innerHTML = `
     <div class="suggestion-content">
-      <p><strong>Ймовірно сьогодні:</strong></p>
+      <p><strong>На сьогодні:</strong></p>
       <ul>${suggestedRows}</ul>
       ${previousHtml}
     </div>
