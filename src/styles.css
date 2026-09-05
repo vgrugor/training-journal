@@ -411,6 +411,15 @@ h3 {
   border-bottom: 0;
 }
 
+.history-inline-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.history-inline-list li + li {
+  margin-top: 4px;
+}
+
 .empty {
   color: var(--muted);
 }
