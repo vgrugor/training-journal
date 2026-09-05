@@ -100,7 +100,7 @@ async function loadState() {
   state.supplements = supplements.sort(byName);
   state.allStrength = allStrength.sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
   state.strength = strength.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-  state.cycling = cycling.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+  state.cycling = cycling.sort((a, b) => (a.time || "").localeCompare(b.time || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
   state.intakes = intakes.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
 }
 
@@ -141,7 +141,7 @@ function renderSummary() {
     : "<li>Немає силового тренування</li>";
 
   const cyclingRows = state.cycling.length
-    ? state.cycling.map((item) => `<li>${item.durationMinutes || 0} хв, ${item.distanceKm || 0} км, ${item.averageSpeedKmh || 0} км/год${item.load ? ` · навантаження ${item.load}` : ""}</li>`).join("")
+    ? state.cycling.map((item) => `<li>${item.time ? `${escapeHtml(item.time)} · ` : ""}${item.durationMinutes || 0} хв, ${item.distanceKm || 0} км, ${item.averageSpeedKmh || 0} км/год${item.load ? ` · навантаження ${item.load}` : ""}</li>`).join("")
     : "<li>Немає велотренування</li>";
 
   const intakeRows = state.intakes.length
@@ -372,6 +372,7 @@ function renderCycling() {
   $("#cyclingList").innerHTML = state.cycling.length
     ? state.cycling.map((item) => {
       const details = [
+        item.time || "",
         item.durationMinutes ? `${item.durationMinutes} хв` : "",
         item.distanceKm ? `${item.distanceKm} км` : "",
         item.averageSpeedKmh ? `${item.averageSpeedKmh} км/год` : "",
@@ -783,6 +784,7 @@ async function saveCycling(event) {
   await put("cyclingWorkouts", {
     id: existing?.id || createId("cycling"),
     date: state.date,
+    time: $("#cyclingTime").value,
     durationMinutes,
     distanceKm,
     averageSpeedKmh: calculateCyclingAverageSpeed(durationMinutes, distanceKm),
@@ -811,6 +813,7 @@ function editCycling(event) {
 
   state.editingCyclingId = item.id;
   $("#cyclingSave").textContent = "Оновити";
+  $("#cyclingTime").value = item.time || "";
   $("#cyclingDuration").value = item.durationMinutes ?? "";
   $("#cyclingDistance").value = item.distanceKm ?? "";
   $("#cyclingLoad").value = item.load ?? "";
