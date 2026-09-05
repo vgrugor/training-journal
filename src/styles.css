@@ -82,6 +82,26 @@ textarea {
   padding: 10px 12px;
 }
 
+.calculated-field {
+  min-height: 66px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-3);
+  padding: 10px 12px;
+}
+
+.calculated-field span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.calculated-field strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: #746f65;
