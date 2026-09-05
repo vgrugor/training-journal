@@ -8,19 +8,25 @@
     if (input && !input.value) input.value = currentTime();
   }
 
-  function fillTimeFields() {
+  function setCyclingDurationDefault() {
+    const input = document.getElementById("cyclingDuration");
+    if (input) input.value = "5";
+  }
+
+  function fillDefaults() {
     setIfEmpty("cyclingTime");
     setIfEmpty("intakeTime");
+    setCyclingDurationDefault();
   }
 
   function fillSoon() {
     [0, 100, 500, 1000].forEach((delay) => {
-      window.setTimeout(fillTimeFields, delay);
+      window.setTimeout(fillDefaults, delay);
     });
   }
 
   window.addEventListener("DOMContentLoaded", () => {
-    fillTimeFields();
+    fillDefaults();
 
     [
       "clearCycling",
