@@ -1,0 +1,58 @@
+.tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  overflow: visible;
+}
+
+.tab,
+.more-toggle {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 8px;
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line);
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.app-shell[data-active-tab="strengthHistory"] .more-toggle,
+.app-shell[data-active-tab="settings"] .more-toggle {
+  background: var(--accent-strong);
+  color: #17130c;
+  border-color: var(--accent-strong);
+}
+
+.tab-more {
+  position: relative;
+}
+
+.more-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  display: none;
+  min-width: 164px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(18, 23, 26, 0.98);
+  box-shadow: 0 18px 36px var(--shadow);
+}
+
+.tab-more.is-open .more-menu,
+.tab-more:focus-within .more-menu {
+  display: grid;
+  gap: 6px;
+}
+
+.more-menu .tab {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .tabs {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
