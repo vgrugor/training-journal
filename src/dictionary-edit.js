@@ -49,6 +49,20 @@
     setButtonText(formId, buttonText);
   }
 
+  function reloadSettingsTab() {
+    sessionStorage.setItem("training-journal-active-tab", "settings");
+    window.location.reload();
+  }
+
+  function restoreActiveTab() {
+    const tabName = sessionStorage.getItem("training-journal-active-tab");
+    if (!tabName) return;
+    sessionStorage.removeItem("training-journal-active-tab");
+    window.setTimeout(() => {
+      document.querySelector(`[data-tab="${tabName}"]`)?.click();
+    }, 0);
+  }
+
   function prepareChipButtons() {
     document.querySelectorAll("#exerciseList .chip").forEach((chip) => {
       if (chip.querySelector("[data-dictionary-edit]")) return;
@@ -141,7 +155,7 @@
         upperRepTarget: numberOrNull(document.getElementById("exerciseUpper").value) || 10
       });
       clearForm("exerciseForm", "exercises", "Додати вправу");
-      window.location.reload();
+      reloadSettingsTab();
     }, true);
 
     document.getElementById("bandForm")?.addEventListener("submit", async (event) => {
@@ -158,7 +172,7 @@
         assistanceLevel: numberOrNull(document.getElementById("bandLevel").value) || 0
       });
       clearForm("bandForm", "bands", "Додати резинку");
-      window.location.reload();
+      reloadSettingsTab();
     }, true);
 
     document.getElementById("supplementForm")?.addEventListener("submit", async (event) => {
@@ -175,11 +189,12 @@
         defaultDose: document.getElementById("supplementDose").value.trim()
       });
       clearForm("supplementForm", "supplements", "Додати добавку");
-      window.location.reload();
+      reloadSettingsTab();
     }, true);
   }
 
   window.addEventListener("DOMContentLoaded", () => {
+    restoreActiveTab();
     bindFormOverrides();
     document.addEventListener("click", (event) => {
       const button = event.target.closest("[data-dictionary-edit]");
