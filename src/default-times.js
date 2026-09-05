@@ -14,6 +14,7 @@
   }
 
   function fillDefaults() {
+    setIfEmpty("strengthTime");
     setIfEmpty("cyclingTime");
     setIfEmpty("intakeTime");
     setCyclingDurationDefault();
@@ -30,7 +31,9 @@
 
     [
       "clearCycling",
+      "clearStrength",
       "clearIntake",
+      "strengthSave",
       "cyclingSave",
       "intakeSave",
       "prevDay",
@@ -39,6 +42,7 @@
       document.getElementById(id)?.addEventListener("click", fillSoon);
     });
 
+    document.getElementById("strengthForm")?.addEventListener("submit", fillSoon);
     document.getElementById("cyclingForm")?.addEventListener("submit", fillSoon);
     document.getElementById("intakeForm")?.addEventListener("submit", fillSoon);
     document.getElementById("selectedDate")?.addEventListener("change", fillSoon);
