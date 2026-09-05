@@ -1,14 +1,16 @@
 .tabs {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  overflow: visible;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .tab,
 .more-toggle {
-  width: 100%;
-  min-width: 0;
+  width: auto;
+  min-width: max-content;
   min-height: 44px;
-  padding: 10px 8px;
+  padding: 10px 14px;
   background: transparent;
   color: var(--muted);
   border-color: var(--line);
@@ -24,6 +26,7 @@
 }
 
 .tab-more {
+  flex: 0 0 auto;
   position: relative;
 }
 
@@ -53,6 +56,6 @@
 
 @media (max-width: 760px) {
   .tabs {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    justify-content: flex-start;
   }
 }
