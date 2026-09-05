@@ -129,7 +129,8 @@ function renderSummary() {
   const strengthRows = state.strength.length
     ? state.strength.map((item) => {
       if (item.loadMode === "skip") return `<li>Пропуск${item.notes ? `: ${escapeHtml(item.notes)}` : ""}</li>`;
-      return `<li>${escapeHtml(findName(state.exercises, item.exerciseId))}: ${item.sets.map((set) => set.reps || 0).join(" / ")}</li>`;
+      const band = item.bandId ? ` · ${findName(state.bands, item.bandId, "")}` : "";
+      return `<li>${escapeHtml(findName(state.exercises, item.exerciseId))}${escapeHtml(band)}: ${item.sets.map((set) => set.reps || 0).join(" / ")}</li>`;
     }).join("")
     : "<li>Немає силового тренування</li>";
 
