@@ -35,6 +35,9 @@ const STRENGTH_ROTATION = [
   "horizontal-pullups"
 ];
 
+const SHEETS_SCRIPT_URL_KEY = "training-journal-sheets-script-url";
+const SHEETS_BACKUP_KEY_KEY = "training-journal-sheets-backup-key";
+
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
@@ -108,6 +111,8 @@ function render() {
   });
   $("#wellbeing").value = state.day.wellbeing ?? "";
   $("#dayNote").value = state.day.note ?? "";
+  $("#sheetsScriptUrl").value = localStorage.getItem(SHEETS_SCRIPT_URL_KEY) || "";
+  $("#sheetsBackupKey").value = localStorage.getItem(SHEETS_BACKUP_KEY_KEY) || "";
 
   renderSummary();
   renderStrength();
@@ -618,6 +623,10 @@ function bindEvents() {
   $("#exportData").addEventListener("click", downloadBackup);
   $("#importData").addEventListener("change", uploadBackup);
   $("#strengthHistoryFilter").addEventListener("change", renderStrengthHistory);
+  $("#sheetsScriptUrl").addEventListener("change", saveSheetsBackupSettings);
+  $("#sheetsBackupKey").addEventListener("change", saveSheetsBackupSettings);
+  $("#backupToSheets").addEventListener("click", backupToSheets);
+  $("#restoreFromSheets").addEventListener("click", restoreFromSheets);
 }
 
 async function selectStrengthExercise(exercise) {
@@ -928,6 +937,103 @@ async function uploadBackup(event) {
   await importAll(JSON.parse(text));
   event.target.value = "";
   await refresh();
+}
+
+function saveSheetsBackupSettings() {
+  localStorage.setItem(SHEETS_SCRIPT_URL_KEY, $("#sheetsScriptUrl").value.trim());
+  localStorage.setItem(SHEETS_BACKUP_KEY_KEY, $("#sheetsBackupKey").value.trim());
+}
+
+function getSheetsBackupSettings() {
+  const url = $("#sheetsScriptUrl").value.trim();
+  const key = $("#sheetsBackupKey").value.trim();
+  saveSheetsBackupSettings();
+  return { url, key };
+}
+
+function setSheetsBackupStatus(message) {
+  $("#sheetsBackupStatus").textContent = message;
+}
+
+async function backupToSheets() {
+  const { url, key } = getSheetsBackupSettings();
+  if (!url || !key) {
+    setSheetsBackupStatus("Вкажи Apps Script URL і ключ.");
+    return;
+  }
+
+  setSheetsBackupStatus("Зберігаю резервну копію...");
+  const data = await exportAll();
+  const payload = {
+    key,
+    savedAt: new Date().toISOString(),
+    source: location.origin + location.pathname,
+    data
+  };
+
+  try {
+    await fetch(url, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    setSheetsBackupStatus("Резервну копію відправлено. Apps Script збереже її в таблицю.");
+  } catch (error) {
+    setSheetsBackupStatus("Не вдалося відправити backup. Перевір інтернет і Apps Script URL.");
+  }
+}
+
+function fetchSheetsBackupJsonp(url, key) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `receiveSheetsBackup_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Timeout"));
+    }, 20000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (payload) => {
+      cleanup();
+      resolve(payload);
+    };
+
+    const separator = url.includes("?") ? "&" : "?";
+    script.src = `${url}${separator}key=${encodeURIComponent(key)}&callback=${encodeURIComponent(callbackName)}`;
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Script load failed"));
+    };
+    document.body.appendChild(script);
+  });
+}
+
+async function restoreFromSheets() {
+  const { url, key } = getSheetsBackupSettings();
+  if (!url || !key) {
+    setSheetsBackupStatus("Вкажи Apps Script URL і ключ.");
+    return;
+  }
+  if (!confirm("Відновити дані з Google Sheets? Поточні локальні записи буде замінено backup-версією.")) return;
+
+  setSheetsBackupStatus("Завантажую резервну копію...");
+  try {
+    const payload = await fetchSheetsBackupJsonp(url, key);
+    if (!payload?.ok || !payload.data) {
+      throw new Error(payload?.error || "Backup not found");
+    }
+    await importAll(payload.data);
+    await refresh();
+    setSheetsBackupStatus(`Відновлено backup від ${payload.savedAt || "невідомої дати"}.`);
+  } catch (error) {
+    setSheetsBackupStatus("Не вдалося відновити backup. Перевір URL, ключ і наявність backup у таблиці.");
+  }
 }
 
 function registerPwa() {
