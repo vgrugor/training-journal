@@ -14,7 +14,9 @@
   }
 
   function fillSoon() {
-    window.setTimeout(fillTimeFields, 0);
+    [0, 100, 500, 1000].forEach((delay) => {
+      window.setTimeout(fillTimeFields, delay);
+    });
   }
 
   window.addEventListener("DOMContentLoaded", () => {
@@ -31,6 +33,8 @@
       document.getElementById(id)?.addEventListener("click", fillSoon);
     });
 
+    document.getElementById("cyclingForm")?.addEventListener("submit", fillSoon);
+    document.getElementById("intakeForm")?.addEventListener("submit", fillSoon);
     document.getElementById("selectedDate")?.addEventListener("change", fillSoon);
     document.querySelectorAll(".sectionDate").forEach((input) => {
       input.addEventListener("change", fillSoon);
