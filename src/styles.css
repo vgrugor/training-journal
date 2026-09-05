@@ -442,6 +442,17 @@ h3 {
   font-size: 0.88rem;
 }
 
+.chip-edit {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  box-shadow: none;
+  font-weight: 600;
+  text-align: left;
+}
+
 .chip-delete {
   display: inline-grid;
   width: 26px;
