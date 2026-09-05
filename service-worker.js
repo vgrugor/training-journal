@@ -1,10 +1,11 @@
-const CACHE_NAME = "personal-day-journal-v45";
+const CACHE_NAME = "personal-day-journal-v46";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./src/app.js",
   "./src/db.js",
+  "./src/default-times.js",
   "./src/styles.css",
   "./icons/icon.svg"
 ];
