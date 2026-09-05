@@ -21,6 +21,7 @@ const state = {
   cycling: [],
   intakes: [],
   editingStrengthId: null,
+  editingCyclingId: null,
   editingIntakeId: null
 };
 
@@ -96,7 +97,7 @@ async function loadState() {
   state.supplements = supplements.sort(byName);
   state.allStrength = allStrength.sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
   state.strength = strength.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-  state.cycling = cycling;
+  state.cycling = cycling.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
   state.intakes = intakes.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
 }
 
@@ -125,7 +126,6 @@ function fillStaticSelects() {
 }
 
 function renderSummary() {
-  const cycling = state.cycling[0];
   const strengthRows = state.strength.length
     ? state.strength.map((item) => {
       if (item.loadMode === "skip") return `<li>Пропуск${item.notes ? `: ${escapeHtml(item.notes)}` : ""}</li>`;
@@ -133,8 +133,8 @@ function renderSummary() {
     }).join("")
     : "<li>Немає силового тренування</li>";
 
-  const cyclingRows = cycling
-    ? `<li>${cycling.durationMinutes || 0} хв, ${cycling.distanceKm || 0} км, ${cycling.averageSpeedKmh || 0} км/год</li>`
+  const cyclingRows = state.cycling.length
+    ? state.cycling.map((item) => `<li>${item.durationMinutes || 0} хв, ${item.distanceKm || 0} км, ${item.averageSpeedKmh || 0} км/год${item.load ? ` · навантаження ${item.load}` : ""}</li>`).join("")
     : "<li>Немає велотренування</li>";
 
   const intakeRows = state.intakes.length
@@ -361,12 +361,32 @@ function renderSetsEditor() {
 }
 
 function renderCycling() {
-  const cycling = state.cycling[0] || {};
-  $("#cyclingDuration").value = cycling.durationMinutes ?? "";
-  $("#cyclingDistance").value = cycling.distanceKm ?? "";
-  $("#cyclingSpeed").value = cycling.averageSpeedKmh ?? "";
-  $("#cyclingLoad").value = cycling.load ?? "";
-  $("#cyclingNote").value = cycling.notes ?? "";
+  $("#cyclingList").innerHTML = state.cycling.length
+    ? state.cycling.map((item) => {
+      const details = [
+        item.durationMinutes ? `${item.durationMinutes} хв` : "",
+        item.distanceKm ? `${item.distanceKm} км` : "",
+        item.averageSpeedKmh ? `${item.averageSpeedKmh} км/год` : "",
+        item.load ? `навантаження ${item.load}` : ""
+      ].filter(Boolean).join(" · ");
+
+      return `
+        <article class="entry">
+          <div>
+            <strong>${escapeHtml(details || "Велотренування")}</strong>
+            ${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ""}
+          </div>
+          <div class="entry-actions">
+            <button class="secondary" type="button" data-edit-cycling="${item.id}">Редагувати</button>
+            <button class="danger" type="button" data-delete-cycling="${item.id}">Видалити</button>
+          </div>
+        </article>
+      `;
+    }).join("")
+    : `<p class="empty">Велозаписів за цей день ще немає.</p>`;
+
+  $$("[data-edit-cycling]").forEach((button) => button.addEventListener("click", editCycling));
+  $$("[data-delete-cycling]").forEach((button) => button.addEventListener("click", deleteCycling));
 }
 
 function renderSupplements() {
@@ -579,7 +599,7 @@ function bindEvents() {
   $("#strengthForm").addEventListener("submit", saveStrength);
 
   $("#cyclingForm").addEventListener("submit", saveCycling);
-  $("#clearCycling").addEventListener("click", deleteCycling);
+  $("#clearCycling").addEventListener("click", clearCyclingForm);
 
   $("#clearIntake").addEventListener("click", () => {
     clearIntakeForm();
@@ -622,6 +642,7 @@ async function useSuggestedStrength(event) {
 async function changeDate(date) {
   state.date = date;
   clearStrengthForm();
+  clearCyclingForm();
   clearIntakeForm();
   await refresh();
 }
@@ -742,7 +763,7 @@ function clearStrengthForm() {
 
 async function saveCycling(event) {
   event.preventDefault();
-  const existing = state.cycling[0];
+  const existing = state.editingCyclingId ? await getByKey("cyclingWorkouts", state.editingCyclingId) : null;
   await put("cyclingWorkouts", {
     id: existing?.id || createId("cycling"),
     date: state.date,
@@ -755,14 +776,37 @@ async function saveCycling(event) {
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
+  clearCyclingForm();
   await refresh();
 }
 
-async function deleteCycling() {
-  if (!state.cycling[0]) return;
-  if (!confirm("Видалити велотренування за цей день?")) return;
-  if (state.cycling[0]) await remove("cyclingWorkouts", state.cycling[0].id);
+async function deleteCycling(event) {
+  const id = event.currentTarget.dataset.deleteCycling;
+  if (!confirm("Видалити це велотренування?")) return;
+  event.currentTarget.closest(".entry")?.remove();
+  await remove("cyclingWorkouts", id);
+  if (state.editingCyclingId === id) clearCyclingForm();
   await refresh();
+}
+
+function editCycling(event) {
+  const item = state.cycling.find((record) => record.id === event.currentTarget.dataset.editCycling);
+  if (!item) return;
+
+  state.editingCyclingId = item.id;
+  $("#cyclingSave").textContent = "Оновити";
+  $("#cyclingDuration").value = item.durationMinutes ?? "";
+  $("#cyclingDistance").value = item.distanceKm ?? "";
+  $("#cyclingSpeed").value = item.averageSpeedKmh ?? "";
+  $("#cyclingLoad").value = item.load ?? "";
+  $("#cyclingNote").value = item.notes || "";
+  $("#cyclingForm").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function clearCyclingForm() {
+  state.editingCyclingId = null;
+  $("#cyclingSave").textContent = "Зберегти";
+  $("#cyclingForm").reset();
 }
 
 async function saveIntake(event) {
