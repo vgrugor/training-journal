@@ -55,9 +55,12 @@
     const headerRow = table.querySelector("thead tr");
     const bodyRows = Array.from(table.querySelectorAll("tbody tr"));
     if (!headerRow || bodyRows.length === 0) return;
-    const hasCyclingColumn = Array.from(headerRow.children).some((cell) => cell.textContent.trim() === "Велотренажер");
-    const hasIntakeColumn = Array.from(headerRow.children).some((cell) => cell.textContent.trim() === "Добавки");
-    if (hasCyclingColumn && hasIntakeColumn) return;
+    const headers = Array.from(headerRow.children);
+    const cyclingIndex = headers.findIndex((cell) => cell.textContent.trim() === "Велотренажер");
+    const intakeIndex = headers.findIndex((cell) => cell.textContent.trim() === "Добавки");
+    const noteIndex = headers.findIndex((cell) => cell.textContent.trim() === "Нотатка");
+    const isOrdered = noteIndex >= 0 && cyclingIndex === noteIndex + 1 && intakeIndex === cyclingIndex + 1;
+    if (isOrdered) return;
 
     const filter = document.getElementById("strengthHistoryFilter")?.value || "";
     const [strength, cycling, intakes, supplements] = await Promise.all([
@@ -82,38 +85,30 @@
       return acc;
     }, {});
 
-    if (!hasCyclingColumn) {
-      const header = document.createElement("th");
-      header.textContent = "Велотренажер";
-      headerRow.insertBefore(header, headerRow.children[5] || null);
-    }
-
-    if (!hasIntakeColumn) {
-      const header = document.createElement("th");
-      header.textContent = "Добавки";
-      headerRow.insertBefore(header, headerRow.children[hasCyclingColumn ? 6 : 6] || null);
-    }
-
     bodyRows.forEach((row, index) => {
       const date = strengthRows[index]?.date;
-      if (!hasCyclingColumn) {
-        const items = (cyclingByDate[date] || []).sort(sortCyclingEntries);
-        const cell = document.createElement("td");
-        cell.innerHTML = items.length
-          ? `<ul class="history-inline-list">${items.map((item) => `<li>${formatCyclingEntry(item)}</li>`).join("")}</ul>`
-          : "";
-        row.insertBefore(cell, row.children[5] || null);
-      }
+      const cyclingItems = (cyclingByDate[date] || []).sort(sortCyclingEntries);
+      const intakeItems = (intakesByDate[date] || []).sort(sortIntakeEntries);
+      const cyclingCell = cyclingIndex >= 0 ? row.children[cyclingIndex] : document.createElement("td");
+      const intakeCell = intakeIndex >= 0 ? row.children[intakeIndex] : document.createElement("td");
 
-      if (!hasIntakeColumn) {
-        const items = (intakesByDate[date] || []).sort(sortIntakeEntries);
-        const cell = document.createElement("td");
-        cell.innerHTML = items.length
-          ? `<ul class="history-inline-list">${items.map((item) => `<li>${formatIntakeEntry(item, supplements)}</li>`).join("")}</ul>`
-          : "";
-        row.insertBefore(cell, row.children[hasCyclingColumn ? 6 : 6] || null);
-      }
+      cyclingCell.innerHTML = cyclingItems.length
+        ? `<ul class="history-inline-list">${cyclingItems.map((item) => `<li>${formatCyclingEntry(item)}</li>`).join("")}</ul>`
+        : "";
+      intakeCell.innerHTML = intakeItems.length
+        ? `<ul class="history-inline-list">${intakeItems.map((item) => `<li>${formatIntakeEntry(item, supplements)}</li>`).join("")}</ul>`
+        : "";
+
+      row.appendChild(cyclingCell);
+      row.appendChild(intakeCell);
     });
+
+    const cyclingHeader = cyclingIndex >= 0 ? headerRow.children[cyclingIndex] : document.createElement("th");
+    const intakeHeader = intakeIndex >= 0 ? headerRow.children[intakeIndex] : document.createElement("th");
+    cyclingHeader.textContent = "Велотренажер";
+    intakeHeader.textContent = "Добавки";
+    headerRow.appendChild(cyclingHeader);
+    headerRow.appendChild(intakeHeader);
   }
 
   window.addEventListener("DOMContentLoaded", () => {
