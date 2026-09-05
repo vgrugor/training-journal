@@ -235,14 +235,13 @@ function renderStrengthSuggestion() {
   const previous = getPreviousStrengthRecord(suggestion.exercise.id);
   const previousHtml = getPreviousStrengthHtml(suggestion.exercise.id) || "<p>Попереднього результату для цієї вправи ще немає.</p>";
   const forecast = getForecastReps(suggestion.exercise.id);
-  const previousBandId = previous?.bandId || previous?.sets?.find((set) => set.bandId)?.bandId;
   const targetSets = suggestion.exercise.defaultSets || 5;
   const targetReps = forecast || suggestion.exercise.lowerRepTarget || "";
   const suggestedRows = [
     suggestion.exercise.name,
     targetReps ? `Підходи: ${targetSets}×${targetReps}` : "",
     targetReps ? `Зробити: ${targetReps} у підході` : "",
-    previousBandId ? `Гумка: ${findName(state.bands, previousBandId, "")}` : ""
+    previous?.bandId ? `Гумка: ${findName(state.bands, previous.bandId, "")}` : ""
   ].filter(Boolean).map((row) => `<li>${escapeHtml(row)}</li>`).join("");
 
   $("#strengthSuggestion").innerHTML = `
@@ -672,7 +671,7 @@ async function editStrength(event) {
   $("#strengthTargetSets").value = String(item.targetSets || 5);
   $("#strengthTargetReps").value = item.targetReps == null ? "5" : String(item.targetReps);
   $("#strengthRest").value = String(item.restMinutes ?? (item.restSeconds ? item.restSeconds / 60 : 3));
-  $("#strengthBand").value = item.bandId || item.sets?.find((set) => set.bandId)?.bandId || "";
+  $("#strengthBand").value = item.bandId || "";
   $("#strengthAddedWeight").value = item.addedWeightKg ?? "";
   $("#strengthTechnique").value = item.technicalStep || "";
   $("#strengthNeedsConsolidation").value = item.needsConsolidation ? "true" : "false";
