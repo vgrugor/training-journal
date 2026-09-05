@@ -192,10 +192,7 @@ function renderStrength() {
       `;
       }
       const workoutBand = item.bandId ? findName(state.bands, item.bandId, "") : "";
-      const sets = item.sets.map((set) => {
-        const band = !workoutBand && set.bandId ? `, ${findName(state.bands, set.bandId, "")}` : "";
-        return `${set.reps || 0}${band}`;
-      }).join(" / ");
+      const sets = item.sets.map((set) => set.reps || 0).join(" / ");
       const details = [
         workoutBand,
         item.addedWeightKg ? `+${item.addedWeightKg} кг` : "",
@@ -477,7 +474,7 @@ function getPreviousStrengthHtml(exerciseId) {
     previous.addedWeightKg ? `+${previous.addedWeightKg} кг` : "",
     previous.technicalStep || ""
   ].filter(Boolean).join(" · ");
-  const sets = previous.sets.map((set) => `${set.reps || 0}${!previous.bandId && set.bandId ? ` (${findName(state.bands, set.bandId, "")})` : ""}`).join(" / ");
+  const sets = previous.sets.map((set) => set.reps || 0).join(" / ");
   return `
     <p><strong>Попередній результат:</strong></p>
     <ul>
@@ -561,8 +558,10 @@ function bindEvents() {
 
 async function selectStrengthExercise(exercise) {
   if (exercise) {
+    const previous = getPreviousStrengthRecord(exercise.id);
     $("#strengthTargetSets").value = exercise.defaultSets || 5;
     $("#strengthTargetReps").value = getForecastReps(exercise.id) || exercise.lowerRepTarget || 5;
+    $("#strengthBand").value = exercise.loadMode === "band" && previous?.bandId ? previous.bandId : "";
     $("#strengthTechnique").value = exercise.defaultTechnique || "";
   }
   updateStrengthSpecificFields(exercise);
