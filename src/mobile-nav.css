@@ -1,8 +1,7 @@
 .tabs {
   display: flex;
   justify-content: center;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
 }
 
 .tab,
@@ -10,7 +9,7 @@
   width: auto;
   min-width: max-content;
   min-height: 44px;
-  padding: 10px 14px;
+  padding: 10px 12px;
   background: transparent;
   color: var(--muted);
   border-color: var(--line);
@@ -56,6 +55,6 @@
 
 @media (max-width: 760px) {
   .tabs {
-    justify-content: flex-start;
+    justify-content: center;
   }
 }
