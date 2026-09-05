@@ -229,16 +229,15 @@ function renderStrengthSuggestion() {
     return;
   }
 
-  const previous = getPreviousStrengthRecord(suggestion.exercise.id);
+  const forecast = getStrengthForecast(suggestion.exercise.id);
   const previousHtml = getPreviousStrengthHtml(suggestion.exercise.id) || "<p>Попереднього результату для цієї вправи ще немає.</p>";
-  const forecast = getForecastReps(suggestion.exercise.id);
   const targetSets = suggestion.exercise.defaultSets || 5;
-  const targetReps = forecast || suggestion.exercise.lowerRepTarget || "";
+  const targetReps = forecast?.targetReps || suggestion.exercise.lowerRepTarget || "";
   const suggestedRows = [
     suggestion.exercise.name,
     targetReps ? `Підходи: ${targetSets}×${targetReps}` : "",
     targetReps ? `Зробити: ${targetReps} у підході` : "",
-    previous?.bandId ? `Гумка: ${findName(state.bands, previous.bandId, "")}` : ""
+    forecast?.bandId ? `Гумка: ${findName(state.bands, forecast.bandId, "")}` : ""
   ].filter(Boolean).map((row) => `<li>${escapeHtml(row)}</li>`).join("");
 
   $("#strengthSuggestion").innerHTML = `
@@ -285,18 +284,63 @@ function getPreviousStrengthRecord(exerciseId) {
     .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || "").localeCompare(a.createdAt || ""))[0] || null;
 }
 
-function getForecastReps(exerciseId) {
+function getStrengthForecast(exerciseId) {
+  const exercise = state.exercises.find((item) => item.id === exerciseId);
   const previous = getPreviousStrengthRecord(exerciseId);
   if (!previous || previous.loadMode === "skip") return null;
 
+  const previousBandId = exercise?.loadMode === "band" ? previous.bandId || "" : "";
   const reps = (previous.sets || []).map((set) => Number(set.reps || 0)).filter((value) => value > 0);
-  if (reps.length === 0) return previous.targetReps || null;
+  if (reps.length === 0) {
+    return {
+      targetReps: previous.targetReps || exercise?.lowerRepTarget || null,
+      bandId: previousBandId
+    };
+  }
 
   const allSame = reps.every((value) => value === reps[0]);
-  if (!allSame) return previous.targetReps || reps[0];
+  if (!allSame) {
+    return {
+      targetReps: previous.targetReps || reps[0],
+      bandId: previousBandId
+    };
+  }
 
-  const forecast = previous.needsConsolidation ? reps[0] : reps[0] + 1;
-  return Math.min(forecast, 20);
+  if (previous.needsConsolidation) {
+    return {
+      targetReps: reps[0],
+      bandId: previousBandId
+    };
+  }
+
+  const upperTarget = Number(exercise?.upperRepTarget || 20);
+  if (upperTarget && reps[0] >= upperTarget) {
+    return {
+      targetReps: exercise?.lowerRepTarget || reps[0],
+      bandId: exercise?.loadMode === "band" ? getNextHarderBandId(previousBandId) : previousBandId
+    };
+  }
+
+  return {
+    targetReps: Math.min(reps[0] + 1, upperTarget || 20),
+    bandId: previousBandId
+  };
+}
+
+function getForecastReps(exerciseId) {
+  return getStrengthForecast(exerciseId)?.targetReps || null;
+}
+
+function getNextHarderBandId(bandId) {
+  const current = state.bands.find((item) => item.id === bandId);
+  if (!current) return bandId || "";
+
+  const currentLevel = Number(current.assistanceLevel);
+  const harder = state.bands
+    .filter((item) => Number(item.assistanceLevel) < currentLevel)
+    .sort((a, b) => Number(b.assistanceLevel) - Number(a.assistanceLevel))[0];
+
+  return harder?.id || current.id;
 }
 
 function renderSetsEditor() {
@@ -558,12 +602,12 @@ function bindEvents() {
 
 async function selectStrengthExercise(exercise) {
   if (exercise) {
-    const previous = getPreviousStrengthRecord(exercise.id);
+    const forecast = getStrengthForecast(exercise.id);
     $("#strengthTargetSets").value = exercise.defaultSets || 5;
-    $("#strengthTargetReps").value = getForecastReps(exercise.id) || exercise.lowerRepTarget || 5;
+    $("#strengthTargetReps").value = forecast?.targetReps || exercise.lowerRepTarget || 5;
     $("#strengthTechnique").value = exercise.defaultTechnique || "";
     updateStrengthSpecificFields(exercise);
-    $("#strengthBand").value = exercise.loadMode === "band" && previous?.bandId ? previous.bandId : "";
+    $("#strengthBand").value = exercise.loadMode === "band" && forecast?.bandId ? forecast.bandId : "";
   } else {
     updateStrengthSpecificFields(exercise);
   }
