@@ -561,10 +561,12 @@ async function selectStrengthExercise(exercise) {
     const previous = getPreviousStrengthRecord(exercise.id);
     $("#strengthTargetSets").value = exercise.defaultSets || 5;
     $("#strengthTargetReps").value = getForecastReps(exercise.id) || exercise.lowerRepTarget || 5;
-    $("#strengthBand").value = exercise.loadMode === "band" && previous?.bandId ? previous.bandId : "";
     $("#strengthTechnique").value = exercise.defaultTechnique || "";
+    updateStrengthSpecificFields(exercise);
+    $("#strengthBand").value = exercise.loadMode === "band" && previous?.bandId ? previous.bandId : "";
+  } else {
+    updateStrengthSpecificFields(exercise);
   }
-  updateStrengthSpecificFields(exercise);
   renderSelectedStrengthContext(exercise?.id || "");
 }
 
