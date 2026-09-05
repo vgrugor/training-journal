@@ -232,14 +232,23 @@ function renderStrengthSuggestion() {
     return;
   }
 
+  const previous = getPreviousStrengthRecord(suggestion.exercise.id);
   const previousHtml = getPreviousStrengthHtml(suggestion.exercise.id) || "<p>Попереднього результату для цієї вправи ще немає.</p>";
   const forecast = getForecastReps(suggestion.exercise.id);
-  const forecastHtml = forecast ? `<p><strong>Прогноз повторів:</strong> ${forecast} у підході</p>` : "";
+  const previousBandId = previous?.bandId || previous?.sets?.find((set) => set.bandId)?.bandId;
+  const targetSets = suggestion.exercise.defaultSets || 5;
+  const targetReps = forecast || suggestion.exercise.lowerRepTarget || "";
+  const suggestedRows = [
+    suggestion.exercise.name,
+    targetReps ? `Підходи: ${targetSets}×${targetReps}` : "",
+    targetReps ? `Зробити: ${targetReps} у підході` : "",
+    previousBandId ? `Гумка: ${findName(state.bands, previousBandId, "")}` : ""
+  ].filter(Boolean).map((row) => `<li>${escapeHtml(row)}</li>`).join("");
 
   $("#strengthSuggestion").innerHTML = `
     <div class="suggestion-content">
-      <p><strong>Ймовірно сьогодні:</strong> ${escapeHtml(suggestion.exercise.name)}</p>
-      ${forecastHtml}
+      <p><strong>Ймовірно сьогодні:</strong></p>
+      <ul>${suggestedRows}</ul>
       ${previousHtml}
     </div>
     <button class="secondary" type="button" data-use-suggested-strength="${suggestion.exercise.id}">Вибрати</button>
