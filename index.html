@@ -8,6 +8,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./src/styles.css" />
+    <link rel="stylesheet" href="./src/mobile-nav.css" />
   </head>
   <body>
     <div class="app-shell" data-active-tab="summary">
@@ -47,8 +48,13 @@
           <button class="tab" type="button" data-tab="strength">Силові</button>
           <button class="tab" type="button" data-tab="cycling">Вело</button>
           <button class="tab" type="button" data-tab="supplements">Добавки</button>
-          <button class="tab" type="button" data-tab="strengthHistory">Історія</button>
-          <button class="tab" type="button" data-tab="settings">Довідники</button>
+          <div class="tab-more">
+            <button class="more-toggle" type="button" aria-haspopup="true" aria-expanded="false">Ще</button>
+            <div class="more-menu" role="menu">
+              <button class="tab" type="button" data-tab="strengthHistory" role="menuitem">Історія</button>
+              <button class="tab" type="button" data-tab="settings" role="menuitem">Довідники</button>
+            </div>
+          </div>
         </nav>
 
         <section class="panel is-active" id="summaryPanel" data-panel="summary"></section>
@@ -272,5 +278,6 @@
     <script src="./src/strength-time.js"></script>
     <script src="./src/history-cycling.js"></script>
     <script src="./src/dictionary-edit.js"></script>
+    <script src="./src/mobile-nav.js"></script>
   </body>
 </html>
