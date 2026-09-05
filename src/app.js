@@ -368,6 +368,7 @@ function renderSetsEditor() {
 }
 
 function renderCycling() {
+  updateCyclingAverageSpeed();
   $("#cyclingList").innerHTML = state.cycling.length
     ? state.cycling.map((item) => {
       const details = [
@@ -606,6 +607,8 @@ function bindEvents() {
   $("#strengthForm").addEventListener("submit", saveStrength);
 
   $("#cyclingForm").addEventListener("submit", saveCycling);
+  $("#cyclingDuration").addEventListener("change", updateCyclingAverageSpeed);
+  $("#cyclingDistance").addEventListener("input", updateCyclingAverageSpeed);
   $("#clearCycling").addEventListener("click", clearCyclingForm);
 
   $("#clearIntake").addEventListener("click", () => {
@@ -775,12 +778,14 @@ function clearStrengthForm() {
 async function saveCycling(event) {
   event.preventDefault();
   const existing = state.editingCyclingId ? await getByKey("cyclingWorkouts", state.editingCyclingId) : null;
+  const durationMinutes = numberOrNull($("#cyclingDuration").value);
+  const distanceKm = numberOrNull($("#cyclingDistance").value);
   await put("cyclingWorkouts", {
     id: existing?.id || createId("cycling"),
     date: state.date,
-    durationMinutes: numberOrNull($("#cyclingDuration").value),
-    distanceKm: numberOrNull($("#cyclingDistance").value),
-    averageSpeedKmh: numberOrNull($("#cyclingSpeed").value),
+    durationMinutes,
+    distanceKm,
+    averageSpeedKmh: calculateCyclingAverageSpeed(durationMinutes, distanceKm),
     load: numberOrNull($("#cyclingLoad").value),
     notes: $("#cyclingNote").value.trim(),
     extra: existing?.extra || {},
@@ -808,9 +813,9 @@ function editCycling(event) {
   $("#cyclingSave").textContent = "Оновити";
   $("#cyclingDuration").value = item.durationMinutes ?? "";
   $("#cyclingDistance").value = item.distanceKm ?? "";
-  $("#cyclingSpeed").value = item.averageSpeedKmh ?? "";
   $("#cyclingLoad").value = item.load ?? "";
   $("#cyclingNote").value = item.notes || "";
+  updateCyclingAverageSpeed();
   $("#cyclingForm").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -818,6 +823,20 @@ function clearCyclingForm() {
   state.editingCyclingId = null;
   $("#cyclingSave").textContent = "Зберегти";
   $("#cyclingForm").reset();
+  updateCyclingAverageSpeed();
+}
+
+function calculateCyclingAverageSpeed(durationMinutes, distanceKm) {
+  if (!durationMinutes || !distanceKm) return null;
+  return Number((distanceKm / (durationMinutes / 60)).toFixed(1));
+}
+
+function updateCyclingAverageSpeed() {
+  const speed = calculateCyclingAverageSpeed(
+    numberOrNull($("#cyclingDuration").value),
+    numberOrNull($("#cyclingDistance").value)
+  );
+  $("#cyclingAverageSpeed").textContent = speed ? `${speed} км/год` : "—";
 }
 
 async function saveIntake(event) {
