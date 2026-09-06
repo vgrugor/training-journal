@@ -232,24 +232,46 @@
             <details class="accordion">
               <summary>Велотренажер</summary>
               <div class="accordion-body">
-                <label>
-                  <span>Параметри</span>
-                  <select id="progressCyclingMetric">
-                    <option value="durationMinutes">Тривалість хв</option>
-                    <option value="averageSpeedKmh">Середня швидкість км/год</option>
-                    <option value="distanceKm">Відстань км</option>
-                  </select>
-                </label>
+                <div class="form-grid">
+                  <label>
+                    <span>Параметри</span>
+                    <select id="progressCyclingMetric">
+                      <option value="durationMinutes">Тривалість хв</option>
+                      <option value="averageSpeedKmh">Середня швидкість км/год</option>
+                      <option value="distanceKm">Відстань км</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>З дати</span>
+                    <input id="progressCyclingDateFrom" type="date" />
+                  </label>
+                  <label>
+                    <span>По дату</span>
+                    <input id="progressCyclingDateTo" type="date" />
+                  </label>
+                </div>
+                <div id="cyclingProgressChart" class="progress-chart"></div>
               </div>
             </details>
 
             <details class="accordion">
               <summary>Добавки</summary>
               <div class="accordion-body">
-                <label>
-                  <span>Добавки</span>
-                  <select id="progressSupplement"></select>
-                </label>
+                <div class="form-grid">
+                  <label>
+                    <span>Добавки</span>
+                    <select id="progressSupplement"></select>
+                  </label>
+                  <label>
+                    <span>З дати</span>
+                    <input id="progressSupplementDateFrom" type="date" />
+                  </label>
+                  <label>
+                    <span>По дату</span>
+                    <input id="progressSupplementDateTo" type="date" />
+                  </label>
+                </div>
+                <div id="supplementDoseChart" class="progress-chart"></div>
               </div>
             </details>
           </div>
