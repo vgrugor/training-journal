@@ -326,13 +326,31 @@
     }, 0);
   }
 
-  function buildStrengthRepsPoints(workouts, exerciseId) {
+  function getStrengthLoadValue(item, bands) {
+    if (item.loadMode === "band") {
+      const band = bands.find((bandItem) => bandItem.id === item.bandId);
+      const level = Number(band?.assistanceLevel);
+      return Number.isFinite(level) ? level : null;
+    }
+
+    if (item.loadMode === "weight") {
+      const weight = Number(item.addedWeightKg);
+      return Number.isFinite(weight) ? weight : null;
+    }
+
+    return null;
+  }
+
+  function getFilteredStrengthWorkouts(workouts, exerciseId) {
     const filteredWorkouts = workouts
       .filter((item) => item.exerciseId === exerciseId && item.date && item.loadMode !== "skip")
       .sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`));
     const range = getSelectedStrengthDateRange(filteredWorkouts);
-    const repsByDate = filteredWorkouts
-      .filter((item) => !range || (item.date >= range.start && item.date <= range.end))
+    return filteredWorkouts.filter((item) => !range || (item.date >= range.start && item.date <= range.end));
+  }
+
+  function buildStrengthRepsPoints(workouts, exerciseId) {
+    const repsByDate = getFilteredStrengthWorkouts(workouts, exerciseId)
       .reduce((acc, item) => {
         const reps = getStrengthTotalReps(item);
         if (!reps) return acc;
@@ -345,6 +363,23 @@
       .map((date) => ({
         date,
         value: repsByDate[date]
+      }));
+  }
+
+  function buildStrengthLoadPoints(workouts, exerciseId, bands) {
+    const loadByDate = getFilteredStrengthWorkouts(workouts, exerciseId)
+      .reduce((acc, item) => {
+        const load = getStrengthLoadValue(item, bands);
+        if (load === null) return acc;
+        acc[item.date] = Math.max(acc[item.date] ?? load, load);
+        return acc;
+      }, {});
+
+    return Object.keys(loadByDate)
+      .sort()
+      .map((date) => ({
+        date,
+        value: loadByDate[date]
       }));
   }
 
@@ -408,25 +443,37 @@
     renderBarChart(chart, points, "Для вибраної добавки поки немає числових доз.", "Діаграма доз добавки");
   }
 
-  function renderStrengthChart(workouts) {
+  function renderStrengthChart(workouts, exercises, bands) {
     const chart = getStrengthChart();
     if (!chart) return;
 
     const exerciseId = document.querySelector("#progressStrengthExercise")?.value || "";
     const metric = document.querySelector("#progressStrengthMetric")?.value || "reps";
+    const exercise = exercises.find((item) => item.id === exerciseId);
 
     if (!exerciseId) {
       renderEmptyChart(chart, "Додай вправу в довіднику, щоб побачити графік повторів.");
       return;
     }
 
-    if (metric !== "reps") {
-      renderEmptyChart(chart, "На першому етапі для силових доступний графік тільки за повторами.");
+    if (metric === "reps") {
+      const points = buildStrengthRepsPoints(workouts, exerciseId);
+      renderBarChart(chart, points, "Для вибраної вправи поки немає записів з повторами.", "Діаграма повторів силової вправи");
       return;
     }
 
-    const points = buildStrengthRepsPoints(workouts, exerciseId);
-    renderBarChart(chart, points, "Для вибраної вправи поки немає записів з повторами.", "Діаграма повторів силової вправи");
+    if (metric === "load") {
+      if (exercise?.loadMode === "technical_step") {
+        renderEmptyChart(chart, "Для техніки числова шкала ще не задана.");
+        return;
+      }
+
+      const points = buildStrengthLoadPoints(workouts, exerciseId, bands);
+      renderBarChart(chart, points, "Для вибраної вправи поки немає числового навантаження.", "Діаграма навантаження силової вправи");
+      return;
+    }
+
+    renderEmptyChart(chart, "Індекс прогресу додамо наступним етапом.");
   }
 
   function getCyclingMetricValue(item, metric) {
@@ -475,8 +522,9 @@
   }
 
   async function renderProgressFilters() {
-    const [exercises, supplements, intakes, cycling, strength] = await Promise.all([
+    const [exercises, bands, supplements, intakes, cycling, strength] = await Promise.all([
       getAll("exercises"),
+      getAll("bands"),
       getAll("supplements"),
       getAll("supplementIntakes"),
       getAll("cyclingWorkouts"),
@@ -486,7 +534,7 @@
     prepareStrengthMetricSelect();
     fillStrengthSelect(exercises);
     ensureStrengthDateFilters();
-    renderStrengthChart(strength);
+    renderStrengthChart(strength, exercises, bands);
     ensureCyclingDateFilters();
     renderCyclingChart(cycling);
 
