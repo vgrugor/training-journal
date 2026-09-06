@@ -1,4 +1,9 @@
 (function () {
+  const script = document.createElement("script");
+  script.src = "./src/technical-progress.js";
+  script.defer = true;
+  document.head.appendChild(script);
+
   window.addEventListener("DOMContentLoaded", () => {
     const moreNav = document.querySelector(".tab-more");
     const moreToggle = document.querySelector(".more-toggle");
