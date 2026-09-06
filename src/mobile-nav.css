@@ -147,6 +147,35 @@
   color: var(--muted);
 }
 
+.progress-explanation {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(18, 23, 26, 0.64);
+  padding: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.progress-explanation h4 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.progress-explanation ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.progress-explanation li + li {
+  margin-top: 5px;
+}
+
+.progress-explanation strong {
+  color: var(--ink);
+}
+
 @media (max-width: 760px) {
   .tabs {
     justify-content: center;
