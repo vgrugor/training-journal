@@ -14,6 +14,11 @@
   progressExplanationsScript.defer = true;
   document.head.appendChild(progressExplanationsScript);
 
+  const strengthForecastScript = document.createElement("script");
+  strengthForecastScript.src = "./src/strength-forecast.js";
+  strengthForecastScript.defer = true;
+  document.head.appendChild(strengthForecastScript);
+
   window.addEventListener("DOMContentLoaded", () => {
     const moreNav = document.querySelector(".tab-more");
     const moreToggle = document.querySelector(".more-toggle");
