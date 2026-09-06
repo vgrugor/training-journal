@@ -9,6 +9,11 @@
   cyclingLoadScript.defer = true;
   document.head.appendChild(cyclingLoadScript);
 
+  const progressExplanationsScript = document.createElement("script");
+  progressExplanationsScript.src = "./src/progress-explanations.js";
+  progressExplanationsScript.defer = true;
+  document.head.appendChild(progressExplanationsScript);
+
   window.addEventListener("DOMContentLoaded", () => {
     const moreNav = document.querySelector(".tab-more");
     const moreToggle = document.querySelector(".more-toggle");
