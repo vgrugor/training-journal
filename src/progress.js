@@ -100,6 +100,28 @@
     return select.value || null;
   }
 
+  function ensureDoseDateFilters() {
+    if (document.querySelector("#progressSupplementDateFrom")) return;
+
+    const supplementSelect = document.querySelector("#progressSupplement");
+    const container = supplementSelect?.closest(".accordion-body");
+    if (!container) return;
+
+    const dateGrid = document.createElement("div");
+    dateGrid.className = "form-grid two progress-date-filters";
+    dateGrid.innerHTML = `
+      <label>
+        <span>З дати</span>
+        <input id="progressSupplementDateFrom" type="date" />
+      </label>
+      <label>
+        <span>По дату</span>
+        <input id="progressSupplementDateTo" type="date" />
+      </label>
+    `;
+    supplementSelect.closest("label")?.after(dateGrid);
+  }
+
   function getDoseChart() {
     let chart = document.querySelector("#supplementDoseChart");
     if (chart) return chart;
@@ -121,6 +143,35 @@
     chart.innerHTML = `<p class="chart-empty">${escapeHtml(message)}</p>`;
   }
 
+  function normalizeDateRange(start, end) {
+    if (start && end && start > end) {
+      return { start: end, end: start };
+    }
+
+    return { start, end };
+  }
+
+  function getSelectedDoseDateRange(numericIntakes) {
+    const selectedStart = document.querySelector("#progressSupplementDateFrom")?.value || "";
+    const selectedEnd = document.querySelector("#progressSupplementDateTo")?.value || "";
+    const today = dateKey(new Date());
+
+    if (selectedStart || selectedEnd) {
+      return normalizeDateRange(
+        selectedStart || numericIntakes[0]?.date || selectedEnd || today,
+        selectedEnd || today
+      );
+    }
+
+    if (!numericIntakes.length) return null;
+
+    const lastRecordDate = numericIntakes[numericIntakes.length - 1].date;
+    return {
+      start: numericIntakes[0].date,
+      end: lastRecordDate > today ? lastRecordDate : today
+    };
+  }
+
   function buildDosePoints(intakes) {
     const numericIntakes = intakes
       .map((item) => ({
@@ -131,18 +182,15 @@
       .filter((item) => item.date && item.dose !== null)
       .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 
-    if (!numericIntakes.length) return [];
+    const range = getSelectedDoseDateRange(numericIntakes);
+    if (!range) return [];
 
     const doseByDate = numericIntakes.reduce((acc, item) => {
       acc[item.date] = (acc[item.date] || 0) + item.dose;
       return acc;
     }, {});
-    const start = numericIntakes[0].date;
-    const lastRecordDate = numericIntakes[numericIntakes.length - 1].date;
-    const today = dateKey(new Date());
-    const end = lastRecordDate > today ? lastRecordDate : today;
 
-    return dateRange(start, end).map((date) => ({
+    return dateRange(range.start, range.end).map((date) => ({
       date,
       dose: doseByDate[date] || 0
     }));
@@ -208,6 +256,7 @@
     fillSelect("#progressStrengthExercise", exercises, "Всі вправи");
 
     const supplementId = fillSupplementSelect(supplements);
+    ensureDoseDateFilters();
     if (!supplementId) {
       renderEmptyChart("Додай добавку в довіднику, щоб побачити діаграму.");
       return;
@@ -225,7 +274,8 @@
       });
     });
 
-    document.querySelector("#progressSupplement")?.addEventListener("change", () => {
+    document.addEventListener("change", (event) => {
+      if (!["progressSupplement", "progressSupplementDateFrom", "progressSupplementDateTo"].includes(event.target.id)) return;
       renderProgressFilters().catch(() => {});
     });
   });
