@@ -103,6 +103,10 @@
   fill: var(--accent-strong);
 }
 
+.chart-bar.is-missing {
+  fill: var(--line);
+}
+
 .chart-value {
   fill: var(--text);
   font-size: 11px;
