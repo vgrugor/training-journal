@@ -17,6 +17,7 @@
   white-space: nowrap;
 }
 
+.app-shell[data-active-tab="progress"] .more-toggle,
 .app-shell[data-active-tab="strengthHistory"] .more-toggle,
 .app-shell[data-active-tab="settings"] .more-toggle {
   background: var(--accent-strong);
@@ -51,6 +52,30 @@
 .more-menu .tab {
   justify-content: flex-start;
   text-align: left;
+}
+
+.accordion-list {
+  display: grid;
+  gap: 12px;
+}
+
+.accordion {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 14px 28px var(--shadow);
+  overflow: hidden;
+}
+
+.accordion summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.accordion-body {
+  padding: 0 16px 16px;
 }
 
 @media (max-width: 760px) {
