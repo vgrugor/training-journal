@@ -108,13 +108,11 @@
 }
 
 .chart-value-bg {
-  fill: var(--surface);
-  stroke: var(--line);
-  stroke-width: 1;
+  display: none;
 }
 
 .chart-value {
-  fill: var(--text);
+  fill: #ffffff;
   font-size: 11px;
   font-weight: 700;
   dominant-baseline: central;
