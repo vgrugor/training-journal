@@ -113,6 +113,30 @@
     }));
   }
 
+  function buildCyclingLoadPoints(cycling) {
+    const numericCycling = cycling
+      .map((item) => ({
+        date: item.date || "",
+        time: item.time || "",
+        value: Number(item.load)
+      }))
+      .filter((item) => item.date && Number.isFinite(item.value))
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+    const range = getSelectedCyclingDateRange(numericCycling);
+    if (!range) return [];
+
+    const loadByDate = numericCycling.reduce((acc, item) => {
+      acc[item.date] = Math.max(acc[item.date] ?? item.value, item.value);
+      return acc;
+    }, {});
+
+    return dateRange(range.start, range.end).map((date) => ({
+      date,
+      value: loadByDate[date] || 0
+    }));
+  }
+
   function renderEmptyChart(chart, message) {
     chart.innerHTML = `<p class="chart-empty">${escapeHtml(message)}</p>`;
   }
@@ -226,14 +250,24 @@
     });
   }
 
-  async function renderCyclingIndexChart() {
+  async function renderCustomCyclingChart() {
     const metric = document.querySelector("#progressCyclingMetric")?.value || "";
-    if (metric !== "cyclingIndex") return;
+    if (!["load", "cyclingIndex"].includes(metric)) return;
 
     const chart = document.querySelector("#cyclingProgressChart");
     if (!chart) return;
 
     const cycling = await getAll("cyclingWorkouts");
+    if (metric === "load") {
+      renderBarChart(
+        chart,
+        buildCyclingLoadPoints(cycling),
+        "Поки немає велотренувань з числовим навантаженням.",
+        "Діаграма навантаження велотренажера"
+      );
+      return;
+    }
+
     renderLineChart(
       chart,
       buildCyclingIndexPoints(cycling),
@@ -245,7 +279,7 @@
   function scheduleRender() {
     window.setTimeout(() => {
       ensureCyclingOptions();
-      renderCyclingIndexChart().catch(() => {});
+      renderCustomCyclingChart().catch(() => {});
     }, 0);
   }
 
