@@ -104,8 +104,20 @@
     const select = document.querySelector("#progressStrengthExercise");
     if (!select) return null;
 
-    const items = exercises.filter((item) => item.loadMode !== "skip");
-    fillSelect("#progressStrengthExercise", items, "Вибери вправу");
+    const selected = select.value;
+    const sorted = exercises
+      .filter((item) => item.loadMode !== "skip")
+      .sort(byName);
+    select.innerHTML = sorted
+      .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`)
+      .join("");
+
+    if (selected && sorted.some((item) => item.id === selected)) {
+      select.value = selected;
+    } else if (sorted[0]) {
+      select.value = sorted[0].id;
+    }
+
     return select.value || null;
   }
 
@@ -120,6 +132,28 @@
     }
 
     select.dataset.prepared = "true";
+  }
+
+  function ensureStrengthDateFilters() {
+    if (document.querySelector("#progressStrengthDateFrom")) return;
+
+    const metricSelect = document.querySelector("#progressStrengthMetric");
+    const container = metricSelect?.closest(".accordion-body");
+    if (!container) return;
+
+    const dateGrid = document.createElement("div");
+    dateGrid.className = "form-grid two progress-date-filters";
+    dateGrid.innerHTML = `
+      <label>
+        <span>З дати</span>
+        <input id="progressStrengthDateFrom" type="date" />
+      </label>
+      <label>
+        <span>По дату</span>
+        <input id="progressStrengthDateTo" type="date" />
+      </label>
+    `;
+    metricSelect.closest("label")?.after(dateGrid);
   }
 
   function ensureDoseDateFilters() {
@@ -248,6 +282,19 @@
     };
   }
 
+  function getSelectedStrengthDateRange(numericStrength) {
+    const selectedStart = document.querySelector("#progressStrengthDateFrom")?.value || "";
+    const selectedEnd = document.querySelector("#progressStrengthDateTo")?.value || "";
+    const today = dateKey(new Date());
+
+    if (!selectedStart && !selectedEnd) return null;
+
+    return normalizeDateRange(
+      selectedStart || numericStrength[0]?.date || selectedEnd || today,
+      selectedEnd || today
+    );
+  }
+
   function buildDosePoints(intakes) {
     const numericIntakes = intakes
       .map((item) => ({
@@ -280,8 +327,12 @@
   }
 
   function buildStrengthRepsPoints(workouts, exerciseId) {
-    const repsByDate = workouts
+    const filteredWorkouts = workouts
       .filter((item) => item.exerciseId === exerciseId && item.date && item.loadMode !== "skip")
+      .sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`));
+    const range = getSelectedStrengthDateRange(filteredWorkouts);
+    const repsByDate = filteredWorkouts
+      .filter((item) => !range || (item.date >= range.start && item.date <= range.end))
       .reduce((acc, item) => {
         const reps = getStrengthTotalReps(item);
         if (!reps) return acc;
@@ -318,7 +369,6 @@
       const x = padding.left + index * (barWidth + barGap);
       const y = padding.top + innerHeight - visibleBarHeight;
       const valueLabel = String(point.value);
-      const valueWidth = Math.max(24, valueLabel.length * 7 + 12);
       const valueX = x + barWidth / 2;
       const valueY = Math.max(16, y - 8);
       const label = point.value ? `${formatDate(point.date)}: ${point.value}` : `${formatDate(point.date)}: пропуск`;
@@ -326,7 +376,6 @@
       return `
         <g>
           <rect class="chart-bar${point.value ? "" : " is-missing"}" x="${x}" y="${y}" width="${barWidth}" height="${visibleBarHeight}" rx="4"></rect>
-          <rect class="chart-value-bg" x="${valueX - valueWidth / 2}" y="${valueY - 14}" width="${valueWidth}" height="18" rx="6"></rect>
           <text class="chart-value" x="${valueX}" y="${valueY}" text-anchor="middle">${escapeHtml(valueLabel)}</text>
           <text class="chart-label" x="${x + barWidth / 2}" y="${height - 24}" text-anchor="middle">${escapeHtml(formatDate(point.date))}</text>
           <title>${escapeHtml(label)}</title>
@@ -367,7 +416,7 @@
     const metric = document.querySelector("#progressStrengthMetric")?.value || "reps";
 
     if (!exerciseId) {
-      renderEmptyChart(chart, "Вибери вправу, щоб побачити графік повторів.");
+      renderEmptyChart(chart, "Додай вправу в довіднику, щоб побачити графік повторів.");
       return;
     }
 
@@ -436,6 +485,7 @@
 
     prepareStrengthMetricSelect();
     fillStrengthSelect(exercises);
+    ensureStrengthDateFilters();
     renderStrengthChart(strength);
     ensureCyclingDateFilters();
     renderCyclingChart(cycling);
@@ -466,6 +516,8 @@
         "progressSupplementDateTo",
         "progressStrengthExercise",
         "progressStrengthMetric",
+        "progressStrengthDateFrom",
+        "progressStrengthDateTo",
         "progressCyclingMetric",
         "progressCyclingDateFrom",
         "progressCyclingDateTo"
