@@ -100,6 +100,28 @@
     return select.value || null;
   }
 
+  function fillStrengthSelect(exercises) {
+    const select = document.querySelector("#progressStrengthExercise");
+    if (!select) return null;
+
+    const items = exercises.filter((item) => item.loadMode !== "skip");
+    fillSelect("#progressStrengthExercise", items, "Вибери вправу");
+    return select.value || null;
+  }
+
+  function prepareStrengthMetricSelect() {
+    const select = document.querySelector("#progressStrengthMetric");
+    if (!select || select.dataset.prepared) return;
+
+    const repsOption = Array.from(select.options).find((option) => option.value === "reps");
+    if (repsOption) {
+      select.prepend(repsOption);
+      select.value = "reps";
+    }
+
+    select.dataset.prepared = "true";
+  }
+
   function ensureDoseDateFilters() {
     if (document.querySelector("#progressSupplementDateFrom")) return;
 
@@ -165,6 +187,10 @@
 
   function getCyclingChart() {
     return getProgressChart("cyclingProgressChart", "#progressCyclingMetric");
+  }
+
+  function getStrengthChart() {
+    return getProgressChart("strengthProgressChart", "#progressStrengthExercise");
   }
 
   function renderEmptyChart(chart, message) {
@@ -246,6 +272,31 @@
     }));
   }
 
+  function getStrengthTotalReps(item) {
+    return (item.sets || []).reduce((sum, set) => {
+      const reps = Number(set.reps || 0);
+      return Number.isFinite(reps) ? sum + reps : sum;
+    }, 0);
+  }
+
+  function buildStrengthRepsPoints(workouts, exerciseId) {
+    const repsByDate = workouts
+      .filter((item) => item.exerciseId === exerciseId && item.date && item.loadMode !== "skip")
+      .reduce((acc, item) => {
+        const reps = getStrengthTotalReps(item);
+        if (!reps) return acc;
+        acc[item.date] = (acc[item.date] || 0) + reps;
+        return acc;
+      }, {});
+
+    return Object.keys(repsByDate)
+      .sort()
+      .map((date) => ({
+        date,
+        value: repsByDate[date]
+      }));
+  }
+
   function renderBarChart(chart, points, emptyMessage, ariaLabel) {
     if (!points.length) {
       renderEmptyChart(chart, emptyMessage);
@@ -308,6 +359,27 @@
     renderBarChart(chart, points, "Для вибраної добавки поки немає числових доз.", "Діаграма доз добавки");
   }
 
+  function renderStrengthChart(workouts) {
+    const chart = getStrengthChart();
+    if (!chart) return;
+
+    const exerciseId = document.querySelector("#progressStrengthExercise")?.value || "";
+    const metric = document.querySelector("#progressStrengthMetric")?.value || "reps";
+
+    if (!exerciseId) {
+      renderEmptyChart(chart, "Вибери вправу, щоб побачити графік повторів.");
+      return;
+    }
+
+    if (metric !== "reps") {
+      renderEmptyChart(chart, "На першому етапі для силових доступний графік тільки за повторами.");
+      return;
+    }
+
+    const points = buildStrengthRepsPoints(workouts, exerciseId);
+    renderBarChart(chart, points, "Для вибраної вправи поки немає записів з повторами.", "Діаграма повторів силової вправи");
+  }
+
   function getCyclingMetricValue(item, metric) {
     const value = Number(item[metric]);
     if (!Number.isFinite(value)) return null;
@@ -354,14 +426,17 @@
   }
 
   async function renderProgressFilters() {
-    const [exercises, supplements, intakes, cycling] = await Promise.all([
+    const [exercises, supplements, intakes, cycling, strength] = await Promise.all([
       getAll("exercises"),
       getAll("supplements"),
       getAll("supplementIntakes"),
-      getAll("cyclingWorkouts")
+      getAll("cyclingWorkouts"),
+      getAll("strengthWorkouts")
     ]);
 
-    fillSelect("#progressStrengthExercise", exercises, "Всі вправи");
+    prepareStrengthMetricSelect();
+    fillStrengthSelect(exercises);
+    renderStrengthChart(strength);
     ensureCyclingDateFilters();
     renderCyclingChart(cycling);
 
@@ -389,6 +464,8 @@
         "progressSupplement",
         "progressSupplementDateFrom",
         "progressSupplementDateTo",
+        "progressStrengthExercise",
+        "progressStrengthMetric",
         "progressCyclingMetric",
         "progressCyclingDateFrom",
         "progressCyclingDateTo"
