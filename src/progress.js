@@ -122,23 +122,52 @@
     supplementSelect.closest("label")?.after(dateGrid);
   }
 
-  function getDoseChart() {
-    let chart = document.querySelector("#supplementDoseChart");
+  function ensureCyclingDateFilters() {
+    if (document.querySelector("#progressCyclingDateFrom")) return;
+
+    const metricSelect = document.querySelector("#progressCyclingMetric");
+    const container = metricSelect?.closest(".accordion-body");
+    if (!container) return;
+
+    const dateGrid = document.createElement("div");
+    dateGrid.className = "form-grid two progress-date-filters";
+    dateGrid.innerHTML = `
+      <label>
+        <span>З дати</span>
+        <input id="progressCyclingDateFrom" type="date" />
+      </label>
+      <label>
+        <span>По дату</span>
+        <input id="progressCyclingDateTo" type="date" />
+      </label>
+    `;
+    metricSelect.closest("label")?.after(dateGrid);
+  }
+
+  function getProgressChart(chartId, anchorSelector) {
+    let chart = document.querySelector(`#${chartId}`);
     if (chart) return chart;
 
-    const supplementSelect = document.querySelector("#progressSupplement");
-    const container = supplementSelect?.closest(".accordion-body");
+    const anchor = document.querySelector(anchorSelector);
+    const container = anchor?.closest(".accordion-body");
     if (!container) return null;
 
     chart = document.createElement("div");
-    chart.id = "supplementDoseChart";
+    chart.id = chartId;
     chart.className = "progress-chart";
     container.appendChild(chart);
     return chart;
   }
 
-  function renderEmptyChart(message) {
-    const chart = getDoseChart();
+  function getDoseChart() {
+    return getProgressChart("supplementDoseChart", "#progressSupplement");
+  }
+
+  function getCyclingChart() {
+    return getProgressChart("cyclingProgressChart", "#progressCyclingMetric");
+  }
+
+  function renderEmptyChart(chart, message) {
     if (!chart) return;
     chart.innerHTML = `<p class="chart-empty">${escapeHtml(message)}</p>`;
   }
@@ -172,6 +201,27 @@
     };
   }
 
+  function getSelectedCyclingDateRange(numericCycling) {
+    const selectedStart = document.querySelector("#progressCyclingDateFrom")?.value || "";
+    const selectedEnd = document.querySelector("#progressCyclingDateTo")?.value || "";
+    const today = dateKey(new Date());
+
+    if (selectedStart || selectedEnd) {
+      return normalizeDateRange(
+        selectedStart || numericCycling[0]?.date || selectedEnd || today,
+        selectedEnd || today
+      );
+    }
+
+    if (!numericCycling.length) return null;
+
+    const lastRecordDate = numericCycling[numericCycling.length - 1].date;
+    return {
+      start: numericCycling[0].date,
+      end: lastRecordDate > today ? lastRecordDate : today
+    };
+  }
+
   function buildDosePoints(intakes) {
     const numericIntakes = intakes
       .map((item) => ({
@@ -196,14 +246,9 @@
     }));
   }
 
-  function renderDoseChart(intakes) {
-    const chart = getDoseChart();
-    if (!chart) return;
-
-    const points = buildDosePoints(intakes);
-
+  function renderBarChart(chart, points, emptyMessage, ariaLabel) {
     if (!points.length) {
-      renderEmptyChart("Для вибраної добавки поки немає числових доз.");
+      renderEmptyChart(chart, emptyMessage);
       return;
     }
 
@@ -212,21 +257,21 @@
     const padding = { top: 18, right: 16, bottom: 48, left: 46 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
-    const maxDose = Math.max(...points.map((item) => item.dose));
+    const maxValue = Math.max(...points.map((item) => item.value));
     const barGap = 10;
     const barWidth = Math.max(18, (innerWidth - barGap * (points.length - 1)) / points.length);
 
     const bars = points.map((point, index) => {
-      const barHeight = maxDose ? (point.dose / maxDose) * innerHeight : 0;
-      const visibleBarHeight = point.dose ? barHeight : 3;
+      const barHeight = maxValue ? (point.value / maxValue) * innerHeight : 0;
+      const visibleBarHeight = point.value ? barHeight : 3;
       const x = padding.left + index * (barWidth + barGap);
       const y = padding.top + innerHeight - visibleBarHeight;
-      const label = point.dose ? `${formatDate(point.date)}: ${point.dose}` : `${formatDate(point.date)}: пропуск`;
+      const label = point.value ? `${formatDate(point.date)}: ${point.value}` : `${formatDate(point.date)}: пропуск`;
 
       return `
         <g>
-          <rect class="chart-bar${point.dose ? "" : " is-missing"}" x="${x}" y="${y}" width="${barWidth}" height="${visibleBarHeight}" rx="4"></rect>
-          <text class="chart-value" x="${x + barWidth / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle">${point.dose}</text>
+          <rect class="chart-bar${point.value ? "" : " is-missing"}" x="${x}" y="${y}" width="${barWidth}" height="${visibleBarHeight}" rx="4"></rect>
+          <text class="chart-value" x="${x + barWidth / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle">${point.value}</text>
           <text class="chart-label" x="${x + barWidth / 2}" y="${height - 24}" text-anchor="middle">${escapeHtml(formatDate(point.date))}</text>
           <title>${escapeHtml(label)}</title>
         </g>
@@ -235,10 +280,10 @@
 
     chart.innerHTML = `
       <div class="chart-scroll">
-        <svg class="dose-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Діаграма доз добавки">
+        <svg class="dose-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(ariaLabel)}">
           <line class="chart-axis" x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + innerHeight}"></line>
           <line class="chart-axis" x1="${padding.left}" y1="${padding.top + innerHeight}" x2="${width - padding.right}" y2="${padding.top + innerHeight}"></line>
-          <text class="chart-scale" x="${padding.left - 8}" y="${padding.top + 5}" text-anchor="end">${maxDose}</text>
+          <text class="chart-scale" x="${padding.left - 8}" y="${padding.top + 5}" text-anchor="end">${maxValue}</text>
           <text class="chart-scale" x="${padding.left - 8}" y="${padding.top + innerHeight}" text-anchor="end">0</text>
           ${bars}
         </svg>
@@ -246,19 +291,79 @@
     `;
   }
 
+  function renderDoseChart(intakes) {
+    const chart = getDoseChart();
+    if (!chart) return;
+
+    const points = buildDosePoints(intakes).map((point) => ({
+      date: point.date,
+      value: point.dose
+    }));
+
+    renderBarChart(chart, points, "Для вибраної добавки поки немає числових доз.", "Діаграма доз добавки");
+  }
+
+  function getCyclingMetricValue(item, metric) {
+    const value = Number(item[metric]);
+    if (!Number.isFinite(value)) return null;
+    return metric === "averageSpeedKmh" ? Math.round(value * 10) / 10 : value;
+  }
+
+  function buildCyclingPoints(cycling, metric) {
+    const numericCycling = cycling
+      .map((item) => ({
+        date: item.date || "",
+        time: item.time || "",
+        value: getCyclingMetricValue(item, metric)
+      }))
+      .filter((item) => item.date && item.value !== null)
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+    const range = getSelectedCyclingDateRange(numericCycling);
+    if (!range) return [];
+
+    const valuesByDate = numericCycling.reduce((acc, item) => {
+      if (!acc[item.date]) acc[item.date] = [];
+      acc[item.date].push(item.value);
+      return acc;
+    }, {});
+
+    return dateRange(range.start, range.end).map((date) => {
+      const values = valuesByDate[date] || [];
+      const total = values.reduce((sum, value) => sum + value, 0);
+      const value = metric === "averageSpeedKmh" && values.length
+        ? Math.round((total / values.length) * 10) / 10
+        : Math.round(total * 100) / 100;
+
+      return { date, value };
+    });
+  }
+
+  function renderCyclingChart(cycling) {
+    const chart = getCyclingChart();
+    if (!chart) return;
+
+    const metric = document.querySelector("#progressCyclingMetric")?.value || "durationMinutes";
+    const points = buildCyclingPoints(cycling, metric);
+    renderBarChart(chart, points, "Поки немає числових велотренувань для графіка.", "Діаграма велотренажера");
+  }
+
   async function renderProgressFilters() {
-    const [exercises, supplements, intakes] = await Promise.all([
+    const [exercises, supplements, intakes, cycling] = await Promise.all([
       getAll("exercises"),
       getAll("supplements"),
-      getAll("supplementIntakes")
+      getAll("supplementIntakes"),
+      getAll("cyclingWorkouts")
     ]);
 
     fillSelect("#progressStrengthExercise", exercises, "Всі вправи");
+    ensureCyclingDateFilters();
+    renderCyclingChart(cycling);
 
     const supplementId = fillSupplementSelect(supplements);
     ensureDoseDateFilters();
     if (!supplementId) {
-      renderEmptyChart("Додай добавку в довіднику, щоб побачити діаграму.");
+      renderEmptyChart(getDoseChart(), "Додай добавку в довіднику, щоб побачити діаграму.");
       return;
     }
 
@@ -275,7 +380,14 @@
     });
 
     document.addEventListener("change", (event) => {
-      if (!["progressSupplement", "progressSupplementDateFrom", "progressSupplementDateTo"].includes(event.target.id)) return;
+      if (![
+        "progressSupplement",
+        "progressSupplementDateFrom",
+        "progressSupplementDateTo",
+        "progressCyclingMetric",
+        "progressCyclingDateFrom",
+        "progressCyclingDateTo"
+      ].includes(event.target.id)) return;
       renderProgressFilters().catch(() => {});
     });
   });
