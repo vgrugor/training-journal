@@ -326,6 +326,14 @@
     }, 0);
   }
 
+  function getStrengthAverageReps(item) {
+    const reps = (item.sets || [])
+      .map((set) => Number(set.reps || 0))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (!reps.length) return null;
+    return reps.reduce((sum, value) => sum + value, 0) / reps.length;
+  }
+
   function getStrengthLoadValue(item, bands) {
     if (item.loadMode === "band") {
       const band = bands.find((bandItem) => bandItem.id === item.bandId);
@@ -339,6 +347,22 @@
     }
 
     return null;
+  }
+
+  function getStrengthIndexValue(item, exercise, bands) {
+    if (exercise?.loadMode === "technical_step") return null;
+
+    const load = getStrengthLoadValue(item, bands);
+    const averageReps = getStrengthAverageReps(item);
+    const lower = Number(exercise?.lowerRepTarget);
+    const upper = Number(exercise?.upperRepTarget);
+    if (load === null || averageReps === null || !Number.isFinite(lower) || !Number.isFinite(upper) || upper <= lower) {
+      return null;
+    }
+
+    const loadLevel = exercise?.loadMode === "weight" ? load / 5 : load;
+    const repProgress = Math.min(1, Math.max(0, (averageReps - lower) / (upper - lower)));
+    return Math.round((loadLevel + repProgress) * 100) / 100;
   }
 
   function getFilteredStrengthWorkouts(workouts, exerciseId) {
@@ -380,6 +404,23 @@
       .map((date) => ({
         date,
         value: loadByDate[date]
+      }));
+  }
+
+  function buildStrengthIndexPoints(workouts, exercise, bands) {
+    const indexByDate = getFilteredStrengthWorkouts(workouts, exercise.id)
+      .reduce((acc, item) => {
+        const index = getStrengthIndexValue(item, exercise, bands);
+        if (index === null) return acc;
+        acc[item.date] = Math.max(acc[item.date] ?? index, index);
+        return acc;
+      }, {});
+
+    return Object.keys(indexByDate)
+      .sort()
+      .map((date) => ({
+        date,
+        value: indexByDate[date]
       }));
   }
 
@@ -473,7 +514,13 @@
       return;
     }
 
-    renderEmptyChart(chart, "Індекс прогресу додамо наступним етапом.");
+    if (exercise?.loadMode === "technical_step") {
+      renderEmptyChart(chart, "Для техніки числова шкала ще не задана.");
+      return;
+    }
+
+    const points = buildStrengthIndexPoints(workouts, exercise, bands);
+    renderBarChart(chart, points, "Для вибраної вправи поки немає даних для індексу.", "Діаграма індексу силової вправи");
   }
 
   function getCyclingMetricValue(item, metric) {
