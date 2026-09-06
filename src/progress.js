@@ -42,6 +42,30 @@
     return `${day}.${month}`;
   }
 
+  function dateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function addDays(value, days) {
+    const [year, month, day] = value.split("-").map(Number);
+    return dateKey(new Date(year, month - 1, day + days));
+  }
+
+  function dateRange(start, end) {
+    const dates = [];
+    let current = start;
+
+    while (current <= end && dates.length < 2000) {
+      dates.push(current);
+      current = addDays(current, 1);
+    }
+
+    return dates;
+  }
+
   function fillSelect(selector, items, placeholder) {
     const select = document.querySelector(selector);
     if (!select) return;
@@ -97,18 +121,38 @@
     chart.innerHTML = `<p class="chart-empty">${escapeHtml(message)}</p>`;
   }
 
-  function renderDoseChart(intakes) {
-    const chart = getDoseChart();
-    if (!chart) return;
-
-    const points = intakes
+  function buildDosePoints(intakes) {
+    const numericIntakes = intakes
       .map((item) => ({
         date: item.date || "",
         time: item.time || "",
         dose: parseDose(item.dose)
       }))
-      .filter((item) => item.dose !== null)
+      .filter((item) => item.date && item.dose !== null)
       .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+    if (!numericIntakes.length) return [];
+
+    const doseByDate = numericIntakes.reduce((acc, item) => {
+      acc[item.date] = (acc[item.date] || 0) + item.dose;
+      return acc;
+    }, {});
+    const start = numericIntakes[0].date;
+    const lastRecordDate = numericIntakes[numericIntakes.length - 1].date;
+    const today = dateKey(new Date());
+    const end = lastRecordDate > today ? lastRecordDate : today;
+
+    return dateRange(start, end).map((date) => ({
+      date,
+      dose: doseByDate[date] || 0
+    }));
+  }
+
+  function renderDoseChart(intakes) {
+    const chart = getDoseChart();
+    if (!chart) return;
+
+    const points = buildDosePoints(intakes);
 
     if (!points.length) {
       renderEmptyChart("Для вибраної добавки поки немає числових доз.");
@@ -126,16 +170,17 @@
 
     const bars = points.map((point, index) => {
       const barHeight = maxDose ? (point.dose / maxDose) * innerHeight : 0;
+      const visibleBarHeight = point.dose ? barHeight : 3;
       const x = padding.left + index * (barWidth + barGap);
-      const y = padding.top + innerHeight - barHeight;
-      const label = `${formatDate(point.date)}${point.time ? ` ${point.time}` : ""}`;
+      const y = padding.top + innerHeight - visibleBarHeight;
+      const label = point.dose ? `${formatDate(point.date)}: ${point.dose}` : `${formatDate(point.date)}: пропуск`;
 
       return `
         <g>
-          <rect class="chart-bar" x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4"></rect>
+          <rect class="chart-bar${point.dose ? "" : " is-missing"}" x="${x}" y="${y}" width="${barWidth}" height="${visibleBarHeight}" rx="4"></rect>
           <text class="chart-value" x="${x + barWidth / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle">${point.dose}</text>
           <text class="chart-label" x="${x + barWidth / 2}" y="${height - 24}" text-anchor="middle">${escapeHtml(formatDate(point.date))}</text>
-          <title>${escapeHtml(label)}: ${point.dose}</title>
+          <title>${escapeHtml(label)}</title>
         </g>
       `;
     }).join("");
