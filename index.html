@@ -51,6 +51,7 @@
           <div class="tab-more">
             <button class="more-toggle" type="button" aria-haspopup="true" aria-expanded="false">Ще</button>
             <div class="more-menu" role="menu">
+              <button class="tab" type="button" data-tab="progress" role="menuitem">Прогрес</button>
               <button class="tab" type="button" data-tab="strengthHistory" role="menuitem">Історія</button>
               <button class="tab" type="button" data-tab="settings" role="menuitem">Довідники</button>
             </div>
@@ -203,6 +204,57 @@
           <div id="intakeList" class="entry-list"></div>
         </section>
 
+        <section class="panel" id="progressPanel" data-panel="progress">
+          <div class="panel-title">
+            <h2>Прогрес</h2>
+          </div>
+          <div class="accordion-list">
+            <details class="accordion" open>
+              <summary>Силові вправи</summary>
+              <div class="accordion-body">
+                <div class="form-grid two">
+                  <label>
+                    <span>Вправа</span>
+                    <select id="progressStrengthExercise"></select>
+                  </label>
+                  <label>
+                    <span>Параметр</span>
+                    <select id="progressStrengthMetric">
+                      <option value="index">Індекс</option>
+                      <option value="reps">Повтори</option>
+                      <option value="load">Навантаження</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </details>
+
+            <details class="accordion">
+              <summary>Велотренажер</summary>
+              <div class="accordion-body">
+                <label>
+                  <span>Параметри</span>
+                  <select id="progressCyclingMetric">
+                    <option value="durationMinutes">Тривалість хв</option>
+                    <option value="averageSpeedKmh">Середня швидкість км/год</option>
+                    <option value="distanceKm">Відстань км</option>
+                  </select>
+                </label>
+              </div>
+            </details>
+
+            <details class="accordion">
+              <summary>Добавки</summary>
+              <div class="accordion-body">
+                <label>
+                  <span>Добавки</span>
+                  <select id="progressSupplement"></select>
+                </label>
+              </div>
+            </details>
+          </div>
+        </section>
+
         <section class="panel" id="strengthHistoryPanel" data-panel="strengthHistory">
           <div class="panel-title">
             <h2>Історія</h2>
@@ -279,5 +331,6 @@
     <script src="./src/history-cycling.js"></script>
     <script src="./src/dictionary-edit.js"></script>
     <script src="./src/mobile-nav.js"></script>
+    <script src="./src/progress.js"></script>
   </body>
 </html>
