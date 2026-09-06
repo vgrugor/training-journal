@@ -4,6 +4,11 @@
   script.defer = true;
   document.head.appendChild(script);
 
+  const cyclingLoadScript = document.createElement("script");
+  cyclingLoadScript.src = "./src/cycling-load-progress.js";
+  cyclingLoadScript.defer = true;
+  document.head.appendChild(cyclingLoadScript);
+
   window.addEventListener("DOMContentLoaded", () => {
     const moreNav = document.querySelector(".tab-more");
     const moreToggle = document.querySelector(".more-toggle");
