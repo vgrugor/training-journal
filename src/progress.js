@@ -253,8 +253,8 @@
     }
 
     const width = Math.max(320, points.length * 54);
-    const height = 220;
-    const padding = { top: 18, right: 16, bottom: 48, left: 46 };
+    const height = 236;
+    const padding = { top: 34, right: 16, bottom: 48, left: 46 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
     const maxValue = Math.max(...points.map((item) => item.value));
@@ -266,12 +266,17 @@
       const visibleBarHeight = point.value ? barHeight : 3;
       const x = padding.left + index * (barWidth + barGap);
       const y = padding.top + innerHeight - visibleBarHeight;
+      const valueLabel = String(point.value);
+      const valueWidth = Math.max(24, valueLabel.length * 7 + 12);
+      const valueX = x + barWidth / 2;
+      const valueY = Math.max(16, y - 8);
       const label = point.value ? `${formatDate(point.date)}: ${point.value}` : `${formatDate(point.date)}: пропуск`;
 
       return `
         <g>
           <rect class="chart-bar${point.value ? "" : " is-missing"}" x="${x}" y="${y}" width="${barWidth}" height="${visibleBarHeight}" rx="4"></rect>
-          <text class="chart-value" x="${x + barWidth / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle">${point.value}</text>
+          <rect class="chart-value-bg" x="${valueX - valueWidth / 2}" y="${valueY - 14}" width="${valueWidth}" height="18" rx="6"></rect>
+          <text class="chart-value" x="${valueX}" y="${valueY}" text-anchor="middle">${escapeHtml(valueLabel)}</text>
           <text class="chart-label" x="${x + barWidth / 2}" y="${height - 24}" text-anchor="middle">${escapeHtml(formatDate(point.date))}</text>
           <title>${escapeHtml(label)}</title>
         </g>
