@@ -472,6 +472,55 @@
     `;
   }
 
+  function renderLineChart(chart, points, emptyMessage, ariaLabel) {
+    if (!points.length) {
+      renderEmptyChart(chart, emptyMessage);
+      return;
+    }
+
+    const width = Math.max(320, points.length * 54);
+    const height = 236;
+    const padding = { top: 34, right: 18, bottom: 48, left: 46 };
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
+    const maxValue = Math.max(...points.map((item) => item.value));
+    const minValue = Math.min(...points.map((item) => item.value));
+    const valueRange = maxValue - minValue || 1;
+    const step = points.length > 1 ? innerWidth / (points.length - 1) : 0;
+    const lastPoint = points[points.length - 1];
+
+    const coordinates = points.map((point, index) => {
+      const x = points.length > 1 ? padding.left + index * step : padding.left + innerWidth / 2;
+      const y = padding.top + innerHeight - ((point.value - minValue) / valueRange) * innerHeight;
+      return { ...point, x, y };
+    });
+    const linePath = coordinates.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ");
+    const dots = coordinates.map((point) => {
+      const isLast = point.date === lastPoint.date && point.value === lastPoint.value;
+      return `
+        <g>
+          <circle class="chart-line-dot${isLast ? " is-last" : ""}" cx="${point.x}" cy="${point.y}" r="${isLast ? 4 : 3}"></circle>
+          ${isLast ? `<text class="chart-value" x="${point.x}" y="${Math.max(16, point.y - 12)}" text-anchor="middle">${escapeHtml(String(point.value))}</text>` : ""}
+          <text class="chart-label" x="${point.x}" y="${height - 24}" text-anchor="middle">${escapeHtml(formatDate(point.date))}</text>
+          <title>${escapeHtml(`${formatDate(point.date)}: ${point.value}`)}</title>
+        </g>
+      `;
+    }).join("");
+
+    chart.innerHTML = `
+      <div class="chart-scroll">
+        <svg class="dose-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(ariaLabel)}">
+          <line class="chart-axis" x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + innerHeight}"></line>
+          <line class="chart-axis" x1="${padding.left}" y1="${padding.top + innerHeight}" x2="${width - padding.right}" y2="${padding.top + innerHeight}"></line>
+          <text class="chart-scale" x="${padding.left - 8}" y="${padding.top + 5}" text-anchor="end">${maxValue}</text>
+          <text class="chart-scale" x="${padding.left - 8}" y="${padding.top + innerHeight}" text-anchor="end">${minValue}</text>
+          <path class="chart-line" d="${linePath}"></path>
+          ${dots}
+        </svg>
+      </div>
+    `;
+  }
+
   function renderDoseChart(intakes) {
     const chart = getDoseChart();
     if (!chart) return;
@@ -520,7 +569,7 @@
     }
 
     const points = buildStrengthIndexPoints(workouts, exercise, bands);
-    renderBarChart(chart, points, "Для вибраної вправи поки немає даних для індексу.", "Діаграма індексу силової вправи");
+    renderLineChart(chart, points, "Для вибраної вправи поки немає даних для індексу.", "Діаграма індексу силової вправи");
   }
 
   function getCyclingMetricValue(item, metric) {
