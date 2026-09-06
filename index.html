@@ -220,12 +220,21 @@
                   <label>
                     <span>Параметр</span>
                     <select id="progressStrengthMetric">
-                      <option value="index">Індекс</option>
                       <option value="reps">Повтори</option>
+                      <option value="index">Індекс</option>
                       <option value="load">Навантаження</option>
                     </select>
                   </label>
+                  <label>
+                    <span>З дати</span>
+                    <input id="progressStrengthDateFrom" type="date" />
+                  </label>
+                  <label>
+                    <span>По дату</span>
+                    <input id="progressStrengthDateTo" type="date" />
+                  </label>
                 </div>
+                <div id="strengthProgressChart" class="progress-chart"></div>
               </div>
             </details>
 
