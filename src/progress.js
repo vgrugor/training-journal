@@ -76,14 +76,29 @@
     return select.value || null;
   }
 
+  function getDoseChart() {
+    let chart = document.querySelector("#supplementDoseChart");
+    if (chart) return chart;
+
+    const supplementSelect = document.querySelector("#progressSupplement");
+    const container = supplementSelect?.closest(".accordion-body");
+    if (!container) return null;
+
+    chart = document.createElement("div");
+    chart.id = "supplementDoseChart";
+    chart.className = "progress-chart";
+    container.appendChild(chart);
+    return chart;
+  }
+
   function renderEmptyChart(message) {
-    const chart = document.querySelector("#supplementDoseChart");
+    const chart = getDoseChart();
     if (!chart) return;
     chart.innerHTML = `<p class="chart-empty">${escapeHtml(message)}</p>`;
   }
 
   function renderDoseChart(intakes) {
-    const chart = document.querySelector("#supplementDoseChart");
+    const chart = getDoseChart();
     if (!chart) return;
 
     const points = intakes
