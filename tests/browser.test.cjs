@@ -390,6 +390,89 @@ test('forecast: saving a skip in the form keeps the missed exercise until it is 
   }
 });
 
+test('cycling forecast: no block appears without an earlier workout', async () => {
+  const { context, page } = await openApp();
+  try {
+    await setDate(page, '2026-01-16');
+    await page.locator('[data-tab="cycling"]').click();
+    assert.equal(await page.locator('#cyclingSuggestion').count(), 1);
+    assert.equal(await page.locator('#cyclingSuggestion').isHidden(), true);
+  } finally {
+    await context.close();
+  }
+});
+
+test('cycling forecast: latest earlier workout supplies duration and load only after choosing it', async () => {
+  const { context, page } = await openApp();
+  try {
+    await page.evaluate(async () => {
+      const db = await import('./src/db.js');
+      await db.put('cyclingWorkouts', { id: 'old', date: '2026-01-13', time: '18:00', durationMinutes: 8, load: 3 });
+      await db.put('cyclingWorkouts', { id: 'last', date: '2026-01-15', time: '07:00', durationMinutes: 12, load: 7 });
+      await db.put('cyclingWorkouts', { id: 'same-day', date: '2026-01-16', time: '06:00', durationMinutes: 16, load: 9 });
+      await db.put('cyclingWorkouts', { id: 'future', date: '2026-01-17', time: '07:00', durationMinutes: 20, load: 10 });
+    });
+    await setDate(page, '2026-01-16');
+    await page.locator('[data-tab="cycling"]').click();
+    const block = page.locator('#cyclingSuggestion');
+    await block.getByRole('button', { name: 'Вибрати' }).waitFor();
+    assert.match(await block.textContent(), /Тривалість: 12 хв/);
+    assert.match(await block.textContent(), /Навантаження: 7/);
+    assert.equal(await page.locator('#cyclingDuration').inputValue(), '5');
+    assert.equal(await page.locator('#cyclingLoad').inputValue(), '1');
+    await page.locator('#cyclingTime').fill('09:30');
+    await page.locator('#cyclingDistance').fill('5');
+    await block.getByRole('button', { name: 'Вибрати' }).click();
+    assert.equal(await page.locator('#cyclingDuration').inputValue(), '12');
+    assert.equal(await page.locator('#cyclingLoad').inputValue(), '7');
+    assert.equal(await page.locator('#cyclingTime').inputValue(), '09:30');
+    assert.equal(await page.locator('#cyclingDistance').inputValue(), '5');
+    assert.equal(await page.locator('#cyclingAverageSpeed').textContent(), '25 км/год');
+  } finally {
+    await context.close();
+  }
+});
+
+test('cycling forecast: latest time wins within a day and selected date changes the source', async () => {
+  const { context, page } = await openApp();
+  try {
+    await page.evaluate(async () => {
+      const db = await import('./src/db.js');
+      await db.put('cyclingWorkouts', { id: 'earlier-day', date: '2026-01-14', time: '10:00', durationMinutes: 6, load: 2 });
+      await db.put('cyclingWorkouts', { id: 'morning', date: '2026-01-15', time: '08:00', durationMinutes: 9, load: 4 });
+      await db.put('cyclingWorkouts', { id: 'evening', date: '2026-01-15', time: '19:00', durationMinutes: 14, load: 8 });
+    });
+    await setDate(page, '2026-01-16');
+    await page.locator('[data-tab="cycling"]').click();
+    const block = page.locator('#cyclingSuggestion');
+    await page.waitForFunction(() => document.querySelector('#cyclingSuggestion')?.textContent.includes('Тривалість: 14 хв'));
+    assert.match(await block.textContent(), /Навантаження: 8/);
+    await setDate(page, '2026-01-15');
+    await page.waitForFunction(() => document.querySelector('#cyclingSuggestion')?.textContent.includes('Тривалість: 6 хв'));
+    assert.match(await block.textContent(), /Навантаження: 2/);
+  } finally {
+    await context.close();
+  }
+});
+
+test('cycling forecast: a saved workout becomes the next day\'s suggestion', async () => {
+  const { context, page } = await openApp();
+  try {
+    await setDate(page, '2026-01-15');
+    await page.locator('[data-tab="cycling"]').click();
+    await page.locator('#cyclingDuration').selectOption('11');
+    await page.locator('#cyclingLoad').selectOption('6');
+    await page.locator('#cyclingSave').click();
+    await page.waitForFunction(async () => (await import('./src/db.js')).getAll('cyclingWorkouts').then((rows) => rows.length === 1));
+    assert.equal(await page.locator('#cyclingSuggestion').isHidden(), true);
+    await setDate(page, '2026-01-16');
+    await page.waitForFunction(() => document.querySelector('#cyclingSuggestion')?.textContent.includes('Тривалість: 11 хв'));
+    assert.match(await page.locator('#cyclingSuggestion').textContent(), /Навантаження: 6/);
+  } finally {
+    await context.close();
+  }
+});
+
 test('Google Sheets UI: upload, restore, and failed request use a mocked endpoint', async () => {
   const { context, page } = await openApp();
   const requests = [];

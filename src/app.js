@@ -17,6 +17,7 @@ const state = {
   bands: [],
   supplements: [],
   allStrength: [],
+  allCycling: [],
   strength: [],
   cycling: [],
   intakes: [],
@@ -83,12 +84,13 @@ function escapeHtml(value) {
 }
 
 async function loadState() {
-  const [day, exercises, bands, supplements, allStrength, strength, cycling, intakes] = await Promise.all([
+  const [day, exercises, bands, supplements, allStrength, allCycling, strength, cycling, intakes] = await Promise.all([
     getByKey("days", state.date),
     getAll("exercises"),
     getAll("bands"),
     getAll("supplements"),
     getAll("strengthWorkouts"),
+    getAll("cyclingWorkouts"),
     getByDate("strengthWorkouts", state.date),
     getByDate("cyclingWorkouts", state.date),
     getByDate("supplementIntakes", state.date)
@@ -99,6 +101,7 @@ async function loadState() {
   state.bands = bands.sort((a, b) => a.assistanceLevel - b.assistanceLevel);
   state.supplements = supplements.sort(byName);
   state.allStrength = allStrength.sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
+  state.allCycling = allCycling.sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.time || "").localeCompare(b.time || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
   state.strength = strength.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
   state.cycling = cycling.sort((a, b) => (a.time || "").localeCompare(b.time || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
   state.intakes = intakes.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
@@ -117,6 +120,7 @@ function render() {
   renderSummary();
   renderStrength();
   renderCycling();
+  renderCyclingSuggestion();
   renderSupplements();
   renderStrengthHistory();
   renderSettings();
@@ -399,6 +403,48 @@ function renderCycling() {
   $$("[data-delete-cycling]").forEach((button) => button.addEventListener("click", deleteCycling));
 }
 
+function getPreviousCyclingWorkout() {
+  return state.allCycling.filter((item) => item.date && item.date < state.date).at(-1) || null;
+}
+
+function renderCyclingSuggestion() {
+  const container = $("#cyclingSuggestion");
+  const previous = getPreviousCyclingWorkout();
+  const duration = Number(previous?.durationMinutes);
+  const load = Number(previous?.load);
+  if (!previous || !Number.isFinite(duration) || duration <= 0 || !Number.isFinite(load) || load <= 0) {
+    container.innerHTML = "";
+    container.hidden = true;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="suggestion-content">
+      <p><strong>На сьогодні:</strong></p>
+      <ul>
+        <li>Тривалість: ${escapeHtml(duration)} хв</li>
+        <li>Навантаження: ${escapeHtml(load)}</li>
+      </ul>
+    </div>
+    <button class="secondary" type="button" data-use-suggested-cycling>Вибрати</button>
+  `;
+  container.hidden = false;
+}
+
+function applyCyclingSuggestion() {
+  const previous = getPreviousCyclingWorkout();
+  if (!previous) return;
+  for (const [selector, value] of [["#cyclingDuration", previous.durationMinutes], ["#cyclingLoad", previous.load]]) {
+    const select = $(selector);
+    const selectedValue = String(value);
+    if (!Array.from(select.options).some((option) => option.value === selectedValue)) {
+      select.add(new Option(selectedValue, selectedValue));
+    }
+    select.value = selectedValue;
+  }
+  updateCyclingAverageSpeed();
+}
+
 function renderSupplements() {
   fillSelect("#intakeSupplement", state.supplements, "Вибери добавку");
   $("#intakeList").innerHTML = state.intakes.length
@@ -609,6 +655,9 @@ function bindEvents() {
   $("#strengthForm").addEventListener("submit", saveStrength);
 
   $("#cyclingForm").addEventListener("submit", saveCycling);
+  $("#cyclingSuggestion").addEventListener("click", (event) => {
+    if (event.target.closest("[data-use-suggested-cycling]")) applyCyclingSuggestion();
+  });
   $("#cyclingDuration").addEventListener("change", updateCyclingAverageSpeed);
   $("#cyclingDistance").addEventListener("input", updateCyclingAverageSpeed);
   $("#clearCycling").addEventListener("click", clearCyclingForm);

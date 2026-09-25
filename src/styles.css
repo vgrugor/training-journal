@@ -281,6 +281,10 @@ h3 {
   background: linear-gradient(135deg, rgba(22, 45, 43, 0.96), rgba(26, 29, 32, 0.96));
 }
 
+.suggestion-box[hidden] {
+  display: none;
+}
+
 .suggestion-box p {
   margin-bottom: 6px;
 }
