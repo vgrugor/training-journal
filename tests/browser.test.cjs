@@ -148,11 +148,15 @@ test('backup: JSON export and import round-trip every IndexedDB store', async ()
 });
 
 test('offline: installed service worker serves the app and cached assets', async () => {
-  const { context, page } = await openApp({ serviceWorkers: 'allow' });
+  const context = await browser.newContext({ serviceWorkers: 'allow' });
+  const page = await context.newPage();
+  page.setDefaultTimeout(15000);
   try {
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-    await page.reload();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+    await page.addInitScript(() => {
+      sessionStorage.setItem('test-page-loads', String(Number(sessionStorage.getItem('test-page-loads') || 0) + 1));
+    });
+    await page.goto(baseURL);
+    await page.waitForFunction(() => Number(sessionStorage.getItem('test-page-loads')) >= 2 && navigator.serviceWorker.controller !== null);
     const cached = await page.evaluate(async () => {
       const names = await caches.keys();
       const cache = await caches.open(names.find((name) => name.startsWith('personal-day-journal-v')));
