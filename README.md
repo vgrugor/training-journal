@@ -1,65 +1,64 @@
-# Особистий журнал дня
+# Personal Day Journal
 
-Мінімальний offline-first PWA для персонального журналу дня, силових тренувань, велотренувань і добавок.
+A minimal offline-first PWA for a personal daily journal, strength training, cycling workouts, and supplements.
 
-## Запуск локально
+## Run locally
 
-Відкрийте папку проєкту через будь-який статичний сервер. Наприклад:
+Serve the project directory with any static file server. For example:
 
 ```bash
 python -m http.server 8080
 ```
 
-Потім відкрийте:
+Then open:
 
 ```text
 http://localhost:8080
 ```
 
-## Тести
+## Tests
 
-Потрібні Node.js 20+, pnpm і встановлений Google Chrome. Після встановлення залежностей запустіть:
+You need Node.js 20+, pnpm, and Google Chrome. Install dependencies and run the tests:
 
 ```bash
 pnpm install
 pnpm test
 ```
 
-Тести охоплюють створення, редагування та видалення тренувань; експорт і імпорт IndexedDB; офлайн-запуск PWA; розрахунки прогнозу й графіків; резервну копію Google Sheets із підставним endpoint та логіку Apps Script із підставною таблицею. Тести не надсилають дані до справжньої Google Sheets таблиці.
+The tests cover creating, editing, and deleting workouts; exporting and importing IndexedDB data; starting the PWA offline; forecast and chart calculations; Google Sheets backup with a mocked endpoint; and Apps Script logic with a mock spreadsheet. Tests do not send data to a real Google Sheets spreadsheet.
 
-Для кожного pull request GitHub Actions запускає цей набір тестів у Chrome через `.github/workflows/tests.yml`.
+GitHub Actions runs the same tests in Chrome for every pull request through `.github/workflows/tests.yml`.
 
 ## GitHub Pages
 
-1. Створіть репозиторій на GitHub, наприклад `training-journal`.
-2. Завантажте в нього всі файли з цієї папки.
-3. У репозиторії відкрийте `Settings` -> `Pages`.
-4. Оберіть джерело `Deploy from a branch`.
-5. Вкажіть гілку `master` і папку `/root`.
-6. Відкрийте видану адресу на телефоні.
-7. У браузері виберіть `Add to Home Screen`.
+1. Create a GitHub repository, such as `training-journal`.
+2. Upload all files from this directory to the repository.
+3. Open `Settings` -> `Pages` in the repository.
+4. Select `Deploy from a branch` as the source.
+5. Choose the `master` branch and the `/root` directory.
+6. Open the published URL on your phone.
+7. Select `Add to Home Screen` in your browser.
 
-Застосунок зберігає дані локально в IndexedDB на пристрої. GitHub Pages лише віддає статичні файли через HTTPS.
+The app stores data locally in IndexedDB on the device. GitHub Pages only serves the static files over HTTPS.
 
-## Ручний backup у Google Sheets
+## Manual backup to Google Sheets
 
-1. Створіть нову Google Sheets таблицю.
-2. Відкрийте `Extensions` -> `Apps Script`.
-3. Вставте код з файлу `apps-script.gs`.
-4. У рядку `const BACKUP_KEY = "change-this-key";` замініть `change-this-key` на власний довгий ключ.
-5. Натисніть `Deploy` -> `New deployment`.
-6. Тип deployment: `Web app`.
-7. `Execute as`: `Me`.
-8. `Who has access`: `Anyone`.
-9. Скопіюйте Web app URL.
-10. У застосунку відкрийте `Довідники`, вставте Web app URL і той самий ключ.
+1. Create a Google Sheets spreadsheet.
+2. Open `Extensions` -> `Apps Script`.
+3. Paste the contents of `apps-script.gs`.
+4. Replace `change-this-key` in `const BACKUP_KEY = "change-this-key";` with your own long key.
+5. Select `Deploy` -> `New deployment`.
+6. Set the deployment type to `Web app`.
+7. Set `Execute as` to `Me`.
+8. Set `Who has access` to `Anyone`.
+9. Copy the web app URL.
+10. Open the app's reference data tab and enter the web app URL and the same key.
 
-Кнопка `Зберегти в Google Sheets` записує повний JSON-знімок IndexedDB у лист `backup`.
-Кнопка `Відновити з Google Sheets` замінює локальні дані останнім збереженим backup-знімком.
+The backup button writes a complete JSON snapshot of IndexedDB to the `backup` sheet. The restore button replaces local data with the latest saved snapshot.
 
-## Дані
+## Data
 
-Перший реліз має такі сховища IndexedDB:
+The first release uses these IndexedDB object stores:
 
 - `days`
 - `strengthWorkouts`
@@ -69,4 +68,4 @@ pnpm test
 - `supplements`
 - `supplementIntakes`
 
-Google Sheets backup у цьому релізі працює як ручний повний знімок даних. Це ще не двостороння синхронізація по окремих записах.
+Google Sheets backup is a manual full snapshot of the data. It does not synchronize individual records in both directions.
