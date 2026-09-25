@@ -1,6 +1,6 @@
 # Agent instructions
 
-This is a static PWA with no build step, package manager, or automated tests. The app's UI and copy are in Ukrainian. User data is stored in the browser's IndexedDB, while Google Sheets backup settings are stored in `localStorage`.
+This is a static PWA with no build step. The app's UI and copy are in Ukrainian. User data is stored in the browser's IndexedDB, while Google Sheets backup settings are stored in `localStorage`. Automated tests use Node.js and Playwright.
 
 ## Where to make changes
 
@@ -14,7 +14,7 @@ This is a static PWA with no build step, package manager, or automated tests. Th
 ## Workflow
 
 1. Check `git status` and read the current code before making changes. Do not assume the local checkout matches the published site.
-2. After changing JavaScript, check the syntax of modified files with `node --check <file>`. For behavior changes, start a local static server (`python3 -m http.server 8080`) and test the relevant flow in a browser. For IndexedDB, backup, and offline changes, also verify persistence after a reload.
+2. After changing JavaScript, check syntax with `node --check <file>` and run `pnpm test` (requires Google Chrome). For behavior changes beyond the covered tests, start a local static server (`python3 -m http.server 8080`) and test the relevant flow in a browser.
 3. When app assets change and installed PWAs need the update, increment `CACHE_NAME` in `service-worker.js`. Add new assets needed offline to `ASSETS`. Documentation-only changes do not require a cache version change.
 4. Publish the site only when the user requests it. Before committing and pushing, inspect `git diff`, the current branch, and the actual GitHub Pages settings. After publishing, verify the site and PWA update. Deploy `apps-script.gs` to Google Apps Script separately from the site.
 

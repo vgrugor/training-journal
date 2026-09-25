@@ -16,6 +16,19 @@ python -m http.server 8080
 http://localhost:8080
 ```
 
+## Тести
+
+Потрібні Node.js 20+, pnpm і встановлений Google Chrome. Після встановлення залежностей запустіть:
+
+```bash
+pnpm install
+pnpm test
+```
+
+Тести охоплюють створення, редагування та видалення тренувань; експорт і імпорт IndexedDB; офлайн-запуск PWA; розрахунки прогнозу й графіків; резервну копію Google Sheets із підставним endpoint та логіку Apps Script із підставною таблицею. Тести не надсилають дані до справжньої Google Sheets таблиці.
+
+Для кожного pull request GitHub Actions запускає цей набір тестів у Chrome через `.github/workflows/tests.yml`.
+
 ## GitHub Pages
 
 1. Створіть репозиторій на GitHub, наприклад `training-journal`.

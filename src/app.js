@@ -126,7 +126,7 @@ function fillStaticSelects() {
   fillNumberSelect("#strengthTargetSets", 1, 10, 1, 5);
   fillNumberSelect("#strengthTargetReps", 1, 20, 1, 5);
   fillNumberSelect("#strengthRest", 0.5, 10, 0.5, 3);
-  fillNumberSelect("#cyclingDuration", 1, 30, 1, 10, "Хвилини");
+  fillNumberSelect("#cyclingDuration", 1, 30, 1, 5, "Хвилини");
   fillNumberSelect("#cyclingLoad", 1, 20, 1, 1, "Рівень");
 }
 

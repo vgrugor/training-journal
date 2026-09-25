@@ -8,16 +8,10 @@
     if (input && !input.value) input.value = currentTime();
   }
 
-  function setCyclingDurationDefault() {
-    const input = document.getElementById("cyclingDuration");
-    if (input) input.value = "5";
-  }
-
   function fillDefaults() {
     setIfEmpty("strengthTime");
     setIfEmpty("cyclingTime");
     setIfEmpty("intakeTime");
-    setCyclingDurationDefault();
   }
 
   function fillSoon() {
