@@ -68,11 +68,10 @@
 
     let currentIndex = null;
     for (const record of records) {
+      if (record.loadMode === "skip") continue;
       const rotationIndex = STRENGTH_ROTATION.indexOf(record.exerciseId);
       if (rotationIndex >= 0) {
         currentIndex = rotationIndex;
-      } else if (record.loadMode === "skip" && currentIndex !== null) {
-        currentIndex = (currentIndex + 1) % STRENGTH_ROTATION.length;
       }
     }
 
@@ -92,8 +91,8 @@
 
     const currentLevel = Number(current.assistanceLevel);
     const harder = bands
-      .filter((item) => Number(item.assistanceLevel) > currentLevel)
-      .sort((a, b) => Number(a.assistanceLevel) - Number(b.assistanceLevel))[0];
+      .filter((item) => Number(item.assistanceLevel) < currentLevel)
+      .sort((a, b) => Number(b.assistanceLevel) - Number(a.assistanceLevel))[0];
 
     return harder?.id || current.id;
   }

@@ -50,8 +50,42 @@ async function getAll(page, store) {
 }
 
 async function setDate(page, date) {
-  await page.locator('#selectedDate').fill(date);
+  const dayPicker = page.locator('#selectedDate');
+  await (await dayPicker.isVisible() ? dayPicker : page.locator('.panel.is-active .sectionDate')).fill(date);
   await page.waitForFunction((value) => document.querySelector('#selectedDate').value === value, date);
+}
+
+function strengthRecord(id, exerciseId, reps, extra = {}) {
+  return {
+    id,
+    date: '2026-01-14',
+    exerciseId,
+    loadMode: 'band',
+    bandId: 'purple',
+    targetReps: 5,
+    sets: reps.map((count, index) => ({ index: index + 1, reps: count })),
+    ...extra
+  };
+}
+
+async function showForecast(page, exerciseId, previous, lastExerciseId = 'handstand-pushups', extraRecords = []) {
+  await setDate(page, '2026-01-16');
+  if (previous?.loadMode === 'technical_step') {
+    await page.waitForFunction(() => document.querySelector('#strengthTechniqueLevel') !== null);
+    await page.evaluate((level) => { document.querySelector('#strengthTechniqueLevel').value = String(level); }, previous.technicalStepLevel);
+  }
+  await page.evaluate(async ({ previousRecord, lastId, records }) => {
+    const db = await import('./src/db.js');
+    if (previousRecord) await db.put('strengthWorkouts', previousRecord);
+    if (lastId) await db.put('strengthWorkouts', {
+      id: 'rotation-last', date: '2026-01-15', exerciseId: lastId,
+      loadMode: 'band', bandId: 'none', sets: [{ index: 1, reps: 5 }]
+    });
+    for (const record of records) await db.put('strengthWorkouts', record);
+  }, { previousRecord: previous, lastId: lastExerciseId, records: extraRecords });
+  await page.locator('[data-tab="strength"]').click();
+  await page.waitForFunction((id) => document.querySelector('[data-enhanced-suggested-strength]')?.dataset.enhancedSuggestedStrength === id, exerciseId);
+  return page.locator('#strengthSuggestion');
 }
 
 test('records: strength and cycling CRUD persists across reloads', async () => {
@@ -200,6 +234,157 @@ test('calculations: forecast, speed, and same-day cycling aggregation', async ()
     await page.locator('#progressCyclingMetric').selectOption('cyclingIndex');
     await page.waitForFunction(() => document.querySelector('#cyclingProgressChart')?.textContent.includes('360'));
     assert.match(await page.locator('#cyclingProgressChart').textContent(), /360/);
+  } finally {
+    await context.close();
+  }
+});
+
+test('forecast: first workout uses the exercise minimum and shows no previous result', async () => {
+  const { context, page } = await openApp();
+  try {
+    const block = await showForecast(page, 'handstand-pushups', null, null);
+    assert.match(await block.textContent(), /Віджимання у стійці/);
+    assert.match(await block.textContent(), /Зробити: 5 у підході/);
+    assert.match(await block.textContent(), /Попереднього результату для цієї вправи ще немає/);
+  } finally {
+    await context.close();
+  }
+});
+
+for (const scenario of [
+  { name: 'uneven sets retain the previous target', reps: [5, 4, 5, 4, 5], targetReps: 7, expected: 7 },
+  { name: 'consolidation keeps the same reps', reps: [6, 6, 6, 6, 6], targetReps: 6, needsConsolidation: true, expected: 6 },
+  { name: 'empty sets retain the previous target', reps: [], targetReps: 7, expected: 7 }
+]) {
+  test(`forecast: ${scenario.name}`, async () => {
+    const { context, page } = await openApp();
+    try {
+      const previous = strengthRecord('forecast-previous', 'pullups-reverse-grip', scenario.reps, scenario);
+      const block = await showForecast(page, 'pullups-reverse-grip', previous);
+      assert.match(await block.textContent(), /Підтягування зворотним хватом/);
+      assert.match(await block.textContent(), new RegExp(`Зробити: ${scenario.expected} у підході`));
+      assert.match(await block.textContent(), /Гумка: Фіолетова/);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test('forecast: reaching the upper target selects a harder band and applies it to the form', async () => {
+  const { context, page } = await openApp();
+  try {
+    const previous = strengthRecord('forecast-previous', 'pullups-reverse-grip', [10, 10, 10, 10, 10]);
+    const block = await showForecast(page, 'pullups-reverse-grip', previous);
+    assert.match(await block.textContent(), /Зробити: 5 у підході/);
+    assert.match(await block.textContent(), /Гумка: Зелена/);
+    await block.locator('[data-enhanced-suggested-strength]').click();
+    await page.waitForFunction(() => document.querySelector('#strengthExercise').value === 'pullups-reverse-grip' && document.querySelector('#strengthBand').value === 'green');
+    assert.equal(await page.locator('#strengthTargetReps').inputValue(), '5');
+  } finally {
+    await context.close();
+  }
+});
+
+test('forecast: reaching the upper target adds 5 kg and applies it to the form', async () => {
+  const { context, page } = await openApp();
+  try {
+    const previous = strengthRecord('forecast-previous', 'squats', [15, 15, 15, 15, 15], { loadMode: 'weight', bandId: null, addedWeightKg: 10, targetReps: 15 });
+    const block = await showForecast(page, 'squats', previous, 'pullups-reverse-grip');
+    assert.match(await block.textContent(), /Зробити: 10 у підході/);
+    assert.match(await block.textContent(), /Додаткова вага: \+15 кг/);
+    await block.locator('[data-enhanced-suggested-strength]').click();
+    await page.waitForFunction(() => document.querySelector('#strengthExercise').value === 'squats' && document.querySelector('#strengthAddedWeight').value === '15');
+    assert.equal(await page.locator('#strengthTargetReps').inputValue(), '10');
+  } finally {
+    await context.close();
+  }
+});
+
+for (const [startingLevel, expectedLevel] of [[9, 10], [10, 10]]) {
+  test(`forecast: technique level ${startingLevel} advances to ${expectedLevel} at the upper target`, async () => {
+    const { context, page } = await openApp();
+    try {
+      const previous = strengthRecord('forecast-previous', 'leg-raises', [10, 10, 10, 10, 10], {
+        loadMode: 'technical_step', bandId: null, technicalStep: 'Кут', technicalStepLevel: startingLevel, targetReps: 10
+      });
+      const block = await showForecast(page, 'leg-raises', previous, 'ring-pullups');
+      assert.match(await block.textContent(), /Зробити: 5 у підході/);
+      assert.match(await block.textContent(), /Техніка: Кут/);
+      assert.match(await block.textContent(), new RegExp(`Рівень техніки: ${expectedLevel}`));
+      await block.locator('[data-enhanced-suggested-strength]').click();
+      await page.waitForFunction((level) =>
+        document.querySelector('#strengthExercise').value === 'leg-raises' &&
+        document.querySelector('#strengthTechnique').value === 'Кут' &&
+        document.querySelector('#strengthTechniqueLevel')?.value === String(level), expectedLevel);
+      assert.equal(await page.locator('#strengthTechnique').inputValue(), 'Кут');
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test('forecast: yesterday\'s skipped turn keeps the missed exercise scheduled today', async () => {
+  const { context, page } = await openApp();
+  try {
+    const previous = strengthRecord('before-skip', 'handstand-pushups', [5]);
+    const skipped = { id: 'skipped-turn', date: '2026-01-15', exerciseId: 'skip', loadMode: 'skip', sets: [] };
+    const block = await showForecast(page, 'pullups-reverse-grip', previous, null, [skipped]);
+    assert.match(await block.textContent(), /Підтягування зворотним хватом/);
+    assert.match(await block.textContent(), /Зробити: 5 у підході/);
+  } finally {
+    await context.close();
+  }
+});
+
+test('forecast: consecutive skipped days still keep the missed exercise', async () => {
+  const { context, page } = await openApp();
+  try {
+    const previous = strengthRecord('before-skips', 'handstand-pushups', [5], { date: '2026-01-13' });
+    const skips = [
+      { id: 'skip-1', date: '2026-01-14', exerciseId: 'skip', loadMode: 'skip', sets: [] },
+      { id: 'skip-2', date: '2026-01-15', exerciseId: 'skip', loadMode: 'skip', sets: [] }
+    ];
+    const block = await showForecast(page, 'pullups-reverse-grip', previous, null, skips);
+    assert.match(await block.textContent(), /Підтягування зворотним хватом/);
+  } finally {
+    await context.close();
+  }
+});
+
+test('forecast: a skip before any completed workout keeps the first exercise', async () => {
+  const { context, page } = await openApp();
+  try {
+    const skipped = { id: 'first-day-skip', date: '2026-01-15', exerciseId: 'skip', loadMode: 'skip', sets: [] };
+    const block = await showForecast(page, 'handstand-pushups', null, null, [skipped]);
+    assert.match(await block.textContent(), /Віджимання у стійці/);
+  } finally {
+    await context.close();
+  }
+});
+
+test('forecast: saving a skip in the form keeps the missed exercise until it is completed', async () => {
+  const { context, page } = await openApp();
+  try {
+    await page.evaluate(async () => {
+      const db = await import('./src/db.js');
+      await db.put('strengthWorkouts', {
+        id: 'completed-before-skip', date: '2026-01-14', exerciseId: 'handstand-pushups',
+        loadMode: 'band', bandId: 'none', sets: [{ index: 1, reps: 5 }]
+      });
+    });
+    await setDate(page, '2026-01-15');
+    await page.locator('[data-tab="strength"]').click();
+    await page.locator('#strengthExercise').selectOption('skip');
+    await page.locator('#strengthSave').click();
+    await page.waitForFunction(async () => (await import('./src/db.js')).getAll('strengthWorkouts').then((rows) => rows.some((row) => row.loadMode === 'skip')));
+    await setDate(page, '2026-01-16');
+    await page.waitForFunction(() => document.querySelector('[data-enhanced-suggested-strength]')?.dataset.enhancedSuggestedStrength === 'pullups-reverse-grip');
+    await page.locator('[data-enhanced-suggested-strength]').click();
+    await page.waitForFunction(() => document.querySelector('#strengthExercise').value === 'pullups-reverse-grip');
+    await page.locator('#strengthSave').click();
+    await page.waitForFunction(async () => (await import('./src/db.js')).getAll('strengthWorkouts').then((rows) => rows.some((row) => row.date === '2026-01-16' && row.exerciseId === 'pullups-reverse-grip')));
+    await setDate(page, '2026-01-17');
+    await page.waitForFunction(() => document.querySelector('[data-enhanced-suggested-strength]')?.dataset.enhancedSuggestedStrength === 'squats');
   } finally {
     await context.close();
   }

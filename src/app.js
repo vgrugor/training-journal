@@ -266,15 +266,16 @@ function getSuggestedStrength() {
   let lastLabel = "";
 
   for (const record of records) {
+    if (record.loadMode === "skip") {
+      last = record;
+      lastLabel = "Пропуск";
+      continue;
+    }
     const rotationIndex = STRENGTH_ROTATION.indexOf(record.exerciseId);
     if (rotationIndex >= 0) {
       currentIndex = rotationIndex;
       last = record;
       lastLabel = findName(state.exercises, record.exerciseId);
-    } else if (record.loadMode === "skip" && currentIndex !== null) {
-      currentIndex = (currentIndex + 1) % STRENGTH_ROTATION.length;
-      last = record;
-      lastLabel = "Пропуск";
     }
   }
 
